@@ -5,30 +5,43 @@ import time
 
 from   mm_config  import mm_path as mm_config_path
 
-class NoteTracker:  #class for tracking open notes. Allows us to close them with note_off in the end of the loop.
+
+
+# decorator for function execution time measurement 
+def measure_execution_time(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"{func.__name__} execution time: {execution_time/1000} milliseconds")
+        return result
+    return wrapper
+
+class NoteTracker:
 
     def __init__(self):
         self.currently_playing_notes = {}
 
     def process_msg(self, msg):
         if msg.type == 'note_on':
-            self.note_on(msg)
+            if msg.velocity > 0:
+                self.note_on(msg)
+            else:
+                self.note_off(msg)  # zero velocity note_on counts for note_off
         elif msg.type == 'note_off':
             self.note_off(msg)
-
+            
     def note_on(self, msg):
         key = (msg.channel, msg.note)
-        if msg.velocity > 0:
-            self.currently_playing_notes[key] = msg
-        elif msg.velocity == 0 and key in self.currently_playing_notes:
-            del self.currently_playing_notes[key]
-
+        self.currently_playing_notes[key] = msg
+        
     def note_off(self, msg):
         key = (msg.channel, msg.note)
         if key in self.currently_playing_notes:
             del self.currently_playing_notes[key]
-
-    def get_all_notes_off(self):
+            
+    def get_all_notes_off(self): 
         notes_off = []
         for key, msg in self.currently_playing_notes.items():
             new_msg = mido.Message('note_off', channel=msg.channel, note=msg.note)
@@ -36,24 +49,26 @@ class NoteTracker:  #class for tracking open notes. Allows us to close them with
         self.currently_playing_notes.clear()
         return notes_off
 
-class MidiPlayer:
+
+class MidiLoop:
 
     def __init__(self, output_port, input_port):
         self.output_port = output_port
         self.input_port = input_port
-        self.midi_file = None
+        self.midi_file = None # mido object
+        self.note_tracker = NoteTracker() # keep track of the notes so we can close them in the end of the loop
+   
+        # per track objects
         self.midi_gens = []
-        self.current_msgs = []
+        self.current_msgs = [] 
         self.tick_counters = []
         self.abs_tick_counters = []
+        self.num_tracks_ended = []   # keep track of the ended track, to end loop when all tracks are done. Pun non intended.
+        
+        # loop information
         self.ticks_per_clock = 0
-        self.max_drift = 0
-        self.note_tracker = NoteTracker() # keep track of the notes so we can close them in the end of the loop
-        self.num_tracks_ended = []
- 
-
-
-    def stop_all_notes(self):
+         
+    def stop_all_tracked_notes(self):
         notes_off = self.note_tracker.get_all_notes_off()
         for msg in notes_off:
             print(f"closing unclosed note  {msg}")
@@ -75,8 +90,7 @@ class MidiPlayer:
         
         beats_per_bar = numerator   * (4  / denominator)
 
-        print(f"detected beats per bar {beats_per_bar}")
-        
+        print(f"detected beats per bar {beats_per_bar}")    
         return   beats_per_bar  
 
     def fix_eot_to_bar(self, mid):
@@ -110,68 +124,59 @@ class MidiPlayer:
                 # add the extra time to the end_of_track event
                 msg.time += next_bar_time - last_note_off_time
                 print(f"fixed ending {msg.time}")
+                self.loop_length_in_ticks=next_bar_time  # basically we've just calculated a loop length expressed in ticks.
+                if  not self.loop_length_in_ticks % 24 == 0:
+                    print(f"MIDI loop does not fit midi clock evenly with a remaning {self.loop_length_in_ticks % 24} ticks")
+                else:
+                    print(f"MIDI loop fits midi clock evenly.")
+                    
                 break  # assuming only one end_of_track event per track
-
-    def load_file(self, midi_file_path):
-        start_time = time.time() 
-        self.midi_file = MidiFile(midi_file_path)
-       # print(self.midi_file)
+    
+    def print_meta_messages(self):
         # Iterate over all tracks
-        for i, track in enumerate(self.midi_file.tracks):
-         
+        for i, track in enumerate(self.midi_file.tracks): 
             # Iterate over all messages in the current track
             for msg in track:
                 # Check if the message is a meta message
                 if msg.type not in ['note_on', 'note_off']:
                     print(f"Meta message: {msg}")
-         
-       
+
+    @measure_execution_time
+    def load_file(self, midi_file_path):
+        
+        self.midi_file = MidiFile(midi_file_path)
         self.fix_eot_to_bar(self.midi_file)
-         
-       # print(self.midi_file)
+
         self.ticks_per_beat = self.midi_file.ticks_per_beat
         self.ticks_per_clock = self.ticks_per_beat / 24  # Default value for time division is 24
+
         self.rewind()
 
-        end_time = time.time()  # Store the end time
-        print(f"'load_file' execution time: {end_time - start_time} seconds")
-    
+      
+    @measure_execution_time
     def rewind(self):
-        start_time = time.time() 
+
         self.midi_gens = [iter(track) for track in self.midi_file.tracks]
         self.current_msgs = [next(gen) for gen in self.midi_gens]  # load first messages
-        self.tick_counters = [ 0 for _ in self.midi_gens] # compensate for having increment in the begining of play
-        self.abs_tick_counters = [0 for _ in self.midi_gens]  #debug
+        self.tick_counters = [ 0 for _ in self.midi_gens] # Each track has it's own time counter.
+        self.abs_tick_counters = [0 for _ in self.midi_gens]  # 
         self.num_tracks_ended = [False for _ in self.midi_gens ] # all tracks are playing   # Keep track of the number of tracks that have ended
-
-        
-        print(f"ticks per beat {self.ticks_per_beat}")
-        print(f"ticks per clock {self.ticks_per_clock}")
-        end_time = time.time()  # Store the end time
-        print(f"'rewind' execution time: {end_time - start_time} seconds")
-
-         
-        
+     
+     
     def play(self):
         # iterate all incoming midi stuff in input  buffer
         for msg in self.input_port.iter_pending():
             if msg.type == 'clock':
                  for i in range(len(self.midi_gens)):  # iterate tracks
-                  
                     if self.num_tracks_ended[i]:  # do not process this track if we are done with it
                         continue
 
                     self.tick_counters[i] += self.ticks_per_clock
-                    self.abs_tick_counters[i] += self.ticks_per_clock  #debug
+                    self.abs_tick_counters[i] += self.ticks_per_clock   
                     
                     LOOKAHEAD_OFFSET=  self.ticks_per_clock/2 # for a small lookahead for smoother play
-
                     # we process all message which are in the past or near ahead current clock.
                     while self.tick_counters[i] >= self.current_msgs[i].time  - LOOKAHEAD_OFFSET:  
-                        
-                        # drift = self.tick_counters[i]-self.current_msgs[i].time  #debug
-                        # self.max_drift = max(self.max_drift, drift) #debug
-                        # print(f"how late: {drift}  max {self.max_drift} self.num_tracks_ended {self.num_tracks_ended}  ") 
 
                         if self.current_msgs[i].type == 'end_of_track':
                             print(f"end of track {i} on {self.abs_tick_counters[i]}")
@@ -206,13 +211,15 @@ input_port_name = 'f_midi'
 output_port = mido.open_output(output_port_name)
 input_port = mido.open_input(input_port_name)
 
-player = MidiPlayer(output_port, input_port)
-#player.load_file('6-8.mid')
-player.load_file('file.mid')
-#player.load_file('able68.mid')
-#player.load_file('hhat2.mid')
+player = MidiLoop(output_port, input_port)
+
 path=mm_config_path
 player.load_file(path)
+
+
+
+
+
 while True:
      
     #print("loop cycle")
@@ -221,7 +228,7 @@ while True:
     still_playing = player.play()
     if not still_playing:
         print("RELOAD")
-        player.stop_all_notes()
+        player.stop_all_tracked_notes()
         player.rewind()
         
     #time.sleep(0.1)
