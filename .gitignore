@@ -1,3 +1,12 @@
+
+*.mid
+*.txt
+snippet_archive
+midi_lib
+*copy*
+mm_config.py
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
