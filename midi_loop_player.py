@@ -46,10 +46,16 @@ class NoteTracker:
         self.currently_playing_notes.clear()
         return notes_off
 
+class TimeSignature:
+    def __init__(self, numerator=4, denominator=4):
+        self.numerator = numerator
+        self.denominator = denominator
+
 
 class MidiLoop:
 
     def __init__(self, output_port, input_port):
+        self.time_signature = TimeSignature(4,4)
         self.output_port = output_port
         self.input_port = input_port
         self.midi_file = None # mido object
@@ -67,8 +73,12 @@ class MidiLoop:
         self.abs_tick_counter = 0
 
         # loop information
-        self.ticks_per_beat = None
+        self.ticks_per_quarter_note = None
         self.ticks_per_clock = None
+        self.quarter_notes_per_bar = None
+
+        #
+        self.time_signature = TimeSignature(4,4)
          
     def stop_all_tracked_notes(self):
         notes_off = self.note_tracker.get_all_notes_off()
@@ -76,23 +86,19 @@ class MidiLoop:
             print(f"closing unclosed note  {msg}")
             self.output_port.send(msg)
 
-    def detect_beats_per_bar(self):
+    def detect_quarter_notes_per_bar(self):  
         # default to 4/4 time if no time_signature message is found
-        numerator = 4
-        denominator = 4
-
+         
         # find the time_signature message, if it exists
         for i, track in enumerate(self.midi_file.tracks):
             for msg in track:
                 if msg.type == 'time_signature':
-                    numerator = msg.numerator
-                    denominator = msg.denominator
-                    break  # assuming only one time_signature event. 
-
-        beats_per_bar = numerator  # * (4  / denominator)
-
-        print(f"detected beats per bar {beats_per_bar}")    
-        return   beats_per_bar  
+                     self.time_signature.numerator = msg.numerator
+                     self.time_signature.denominator  = msg.denominator
+                     break  # assuming only one time_signature event. 
+        self.quarter_notes_per_bar = self.time_signature.numerator   * (4  /  self.time_signature.denominator)
+        print(f"detected quarter_notes_per_bar { self.quarter_notes_per_bar}")    
+       
 
     def verify_length(self):   # it appears to me that it always should pass the verification, as soon as we fix drum loop length according to clocks anyway.
                                # but I'll keep that for a while
@@ -102,10 +108,10 @@ class MidiLoop:
         else:
             print(f"MIDI loop fits midi clock evenly into clocksks.")
             
-    def fix_eot_to_bar(self):
+    def fix_eot_to_bar(self):   # quantize end of track to full bar length.
         
-        beats_per_bar = self.detect_beats_per_bar()  # for 4/4 time
-        bar_length_ticks = beats_per_bar * self.midi_file.ticks_per_beat
+                                                        
+        bar_length_ticks = self.quarter_notes_per_bar * self.ticks_per_quarter_note
 
         # find the last note_off event across all tracks
         last_note_off_time = 0
@@ -128,7 +134,7 @@ class MidiLoop:
         next_bar_time = num_bars * bar_length_ticks
         print(f"next bar {next_bar_time}")
 
-        # find the end_of_track event in the track with the last note and replace it
+        # find the end_of_track event in the track with the last note and replace it, therefore adjusting loop length.
         track = self.midi_file.tracks[longest_track_index]
         for msg in track:
             if msg.type == 'end_of_track':
@@ -154,10 +160,13 @@ class MidiLoop:
     def load_file(self, midi_file_path):
         
         self.midi_file = MidiFile(midi_file_path)
-        self.ticks_per_beat = self.midi_file.ticks_per_beat
-        print(f"ticks_per_beat {self.ticks_per_beat} ")
-        self.ticks_per_clock = self.ticks_per_beat / 24  # Default value for time division is 24
+                                                     # it is actually per quarter note     
+        self.ticks_per_quarter_note = self.midi_file.ticks_per_beat
+        print(f"ticks_per_quarter_note {self.ticks_per_quarter_note} ")
+        self.ticks_per_clock = self.ticks_per_quarter_note / 24  # Default value for time division is 24
+        print (f"ticks_per_clock {self.ticks_per_clock}")
 
+        self.detect_quarter_notes_per_bar()
         self.fix_eot_to_bar()   # auto extend end-of-track to end of bar.
         self.verify_length()
         
@@ -186,14 +195,20 @@ class MidiLoop:
 
     def get_beats_absolute_time_ticks(self):
         
-        beats_per_bar = self.detect_beats_per_bar()  # Assuming 4/4 time signature
+        #quarter_notes_per_bar = self.detect_quarter_notes_per_bar()  # Assuming 4/4 time signature
+        print (f"quarter notes in one real beat: { 4 / self.time_signature.denominator}")
+      
+        ticks_per_denominator_beat = self.ticks_per_quarter_note * (4 / self.time_signature.denominator)
+        print(f"ticks_per_denominator_beat { ticks_per_denominator_beat}")
 
         absolute_times = []
         current_time = 0
                         #<=  includes end, < does not
         while current_time <  self.loop_length_in_ticks:
             absolute_times.append(current_time)
-            current_time += self.ticks_per_beat
+
+            
+            current_time += ticks_per_denominator_beat # * ( self.time_signature.numerator / self.time_signature.denominator)
         self.beats_absolute_time_ticks = absolute_times
         return absolute_times
              
@@ -209,7 +224,7 @@ class MidiLoop:
         beat_number = self.calc_beat_number()
         if  not self.current_beat_number == beat_number:
             self.current_beat_number = beat_number
-            print (f"abs tick time: {self.abs_tick_counter}  beat: { beat_number} / {len(self.beats_absolute_time_ticks)} ") 
+            print (f"abs tick time: {self.abs_tick_counter}  real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th") 
 
     def play(self):
         # iterate all incoming midi stuff in input  buffer
