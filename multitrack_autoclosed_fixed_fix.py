@@ -103,7 +103,7 @@ class MidiLoop:
             print(f"MIDI loop fits midi clock evenly into clocksks.")
             
     def fix_eot_to_bar(self):
-        print (f"self.midi_file.ticks_per_beat  before {self.midi_file.}")
+        
         beats_per_bar = self.detect_beats_per_bar()  # for 4/4 time
         bar_length_ticks = beats_per_bar * self.midi_file.ticks_per_beat
 
@@ -137,7 +137,7 @@ class MidiLoop:
                 print(f"fixed ending {msg.time}")
                 self.loop_length_in_ticks=next_bar_time  # basically we've just calculated a loop length expressed in ticks.
                 break  # assuming only one end_of_track event per track
-        print (f"self.midi_file.ticks_per_beat  after {self.midi_file.length}")
+        
 
     def print_meta_messages(self):
         # Iterate over all tracks
@@ -180,7 +180,7 @@ class MidiLoop:
 
         if   msg.type in ["note_on", "note_off"]:
                           #  print(msg)
-                            print(".")
+                      #      print(".")
                             self.note_tracker.process_msg(msg)
                             self.output_port.send(msg)
 
@@ -203,13 +203,13 @@ class MidiLoop:
             if self.abs_tick_counter <= range_num:
                 return i
        # If the input number is greater than the last range, return the index of the last range
-        return len(ranges) - 1
+        return len(ranges)   
     
     def print_beat_number(self):
         beat_number = self.calc_beat_number()
         if  not self.current_beat_number == beat_number:
             self.current_beat_number = beat_number
-            print (f"abs tick time: {self.abs_tick_counter}  beat: { beat_number} ") 
+            print (f"abs tick time: {self.abs_tick_counter}  beat: { beat_number} / {len(self.beats_absolute_time_ticks)} ") 
 
     def play(self):
         # iterate all incoming midi stuff in input  buffer
