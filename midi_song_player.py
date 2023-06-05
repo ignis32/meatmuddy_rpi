@@ -19,6 +19,8 @@ class MidiSong:
 
     def load_song(self):
         self.intro.load_file(self.song_data['intro']['groove'])
+        self.next_part_scheduled = True
+
         self.outro.load_file(self.song_data['outro']['groove'])
 
         for part in self.song_data['song_parts']:
