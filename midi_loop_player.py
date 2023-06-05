@@ -3,7 +3,7 @@ from mido import MidiFile
 import math
 import time
 
-from   mm_config  import mm_path as mm_config_path
+#from   mm_config  import mm_path as mm_config_path
 
 # decorator for function execution time measurement 
 def measure_execution_time(func):
@@ -54,7 +54,7 @@ class TimeSignature:
 
 class MidiLoop:
 
-    def __init__(self, output_port, input_port):
+    def __init__(self, input_port,output_port):
         self.time_signature = TimeSignature(4,4)
         self.output_port = output_port
         self.input_port = input_port
@@ -79,6 +79,11 @@ class MidiLoop:
 
         #
         self.time_signature = TimeSignature(4,4)
+
+        # communication with midi song
+        self.loop_length_in_ticks =0
+        self.ticks_left_to_end = None
+        self.command_messages_stack= None
          
     def stop_all_tracked_notes(self):
         notes_off = self.note_tracker.get_all_notes_off()
@@ -158,8 +163,11 @@ class MidiLoop:
 
     @measure_execution_time
     def load_file(self, midi_file_path):
-        
+        print ("\n\n")
+        print(f"loading drum loop from: {midi_file_path} ")
         self.midi_file = MidiFile(midi_file_path)
+        self.file_name = midi_file_path
+
                                                      # it is actually per quarter note     
         self.ticks_per_quarter_note = self.midi_file.ticks_per_beat
         print(f"ticks_per_quarter_note {self.ticks_per_quarter_note} ")
@@ -224,14 +232,18 @@ class MidiLoop:
         beat_number = self.calc_beat_number()
         if  not self.current_beat_number == beat_number:
             self.current_beat_number = beat_number
-            print (f"abs tick time: {self.abs_tick_counter}  real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th") 
+            print (f"abs tick: {self.abs_tick_counter}  ticks left: {self.loop_length_in_ticks - self.abs_tick_counter} real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th") 
 
+    
     def play(self):
+        self.command_messages_stack = []
+
         # iterate all incoming midi stuff in input  buffer
         for msg in self.input_port.iter_pending():
             if msg.type == 'clock':
                  
                 self.abs_tick_counter  += self.ticks_per_clock   #absolute time is same for all tracks.
+                self.ticks_left_to_end = self.loop_length_in_ticks - self.abs_tick_counter
                 self.print_beat_number()
 
                 for i in range(len(self.midi_gens)):  # iterate tracks
@@ -239,11 +251,7 @@ class MidiLoop:
                         continue
 
                     self.tick_counters[i] += self.ticks_per_clock
-                    
-
-
-                   
-                    
+                                        
                     LOOKAHEAD_OFFSET=  self.ticks_per_clock/2 # for a small lookahead for smoother play. 
                     # we process all message which are in the past or near ahead current clock.
                     # We do not use any internal timing, our sends are just immediate reaction to the incoming midi clock              
@@ -259,40 +267,44 @@ class MidiLoop:
                         # we are not zeroing time counters, because most probably we are not exactly on the
                         # time for this note, only near.
                         self.tick_counters[i] -= self.current_msgs[i].time   
-                        self.current_msgs[i] = next(self.midi_gens[i])                          
+                        self.current_msgs[i] = next(self.midi_gens[i])        
+            elif msg.type == "note_on": #stupid ableton has broken cc stuff, using notes for now. TBA - replace with CC.
+                print(msg)    
+                self.command_messages_stack.append(msg.note)    
+                
+            else:
+                pass          
                            
         return True
-
-# Example usage
-output_port_name = 'f_midi'
-input_port_name = 'f_midi'
-output_port = mido.open_output(output_port_name)
-input_port = mido.open_input(input_port_name)
-
-player = MidiLoop(output_port, input_port)
-
-path=mm_config_path
-player.load_file(path)
+ 
 
 
 
 
-
-while True:
-     
-    #print("loop cycle")
+def main():
     
-  
-    still_playing = player.play()
-    if not still_playing:
-        print("RELOAD")
-        player.stop_all_tracked_notes()
-        player.rewind()
-        
-    #time.sleep(0.1)
+    # init  midi ports.
+    input_port_name = 'f_midi'
+    output_port_name = 'f_midi'
 
+    output_port = mido.open_output(output_port_name)
+    input_port = mido.open_input(input_port_name)
 
-# Close the ports when finished
-print("close ports")
-output_port.close()
-input_port.close()
+    player = MidiLoop(  input_port, output_port)
+
+    path=mm_config_path
+
+    player.load_file(path)
+
+    while True:   
+    
+        still_playing = player.play()
+        if not still_playing:
+            print("RELOAD")
+            player.stop_all_tracked_notes()
+            player.rewind()
+    
+    # Close the ports when finished
+    print("closinge ports")
+    output_port.close()
+    input_port.close()
