@@ -1,6 +1,7 @@
 
 *.mid
 *.txt
+*.json
 snippet_archive
 midi_lib
 *copy*
