@@ -42,10 +42,25 @@ class MidiSong:
             return self.outro
         else:
             return self.song_parts[self.current_part_index]
+    def process_commands(self):
+        if self.get_current_part().command_messages_stack:
+            command = self.get_current_part().command_messages_stack.pop(0)
+            print(f"incoming command: {command}")
+
+            if command == 48:
+                self.next_part_scheduled = True
+            elif command == 49:
+                self.fill_scheduled = True
+            elif command == 50:
+                ## tba start or stop
+                pass
 
     def play(self):
         while True:
             current_part = self.get_current_part()
+
+            self.process_commands()
+
 
             if self.fill_scheduled and current_part.ticks_left_to_end <= current_part.fills[self.fill_index].loop_length_in_ticks:
                 # Play fill if fill is scheduled and it's time to start the fill
@@ -72,14 +87,9 @@ class MidiSong:
                         break
                     self.next_part_scheduled = False
 
-            if current_part.command_messages_stack:
-                command = current_part.command_messages_stack.pop(0)
-                print(f"incoming command: {command}")
+           
 
-                if command == 48:
-                    self.next_part_scheduled = True
-                elif command == 49:
-                    self.fill_scheduled = True
+                    
 
 # init  midi ports.
 input_port_name = 'f_midi'
