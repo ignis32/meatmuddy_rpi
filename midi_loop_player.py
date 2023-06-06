@@ -3,7 +3,7 @@ from mido import MidiFile
 import math
 import time
 import os
-#from   mm_config  import mm_path as mm_config_path
+ 
 
 # decorator for function execution time measurement 
 def measure_execution_time(func):
@@ -235,11 +235,11 @@ class MidiLoop:
             print (f"abs tick: {self.abs_tick_counter}  ticks left: {self.loop_length_in_ticks - self.abs_tick_counter} real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th file: {os.path.basename(self.file_name)}") 
 
     
-    def play(self):
+    def play(self, input_messages):
         self.command_messages_stack = []
 
         # iterate all incoming midi stuff in input  buffer
-        for msg in self.input_port.iter_pending():
+        for msg in input_messages: 
             if msg.type == 'clock':
                  
                 self.abs_tick_counter  += self.ticks_per_clock   #absolute time is same for all tracks.
@@ -260,6 +260,8 @@ class MidiLoop:
                             print(f"end of track {i} on {self.abs_tick_counter }")
                             self.num_tracks_ended[i] = True
                             if all(self.num_tracks_ended):  ### if all tracks stopped, its a loop end
+                                self.rewind()  # reset all the counters and recreate gens.
+                                self.stop_all_tracked_notes()
                                 return False # report loop end
                             break # otherwise
                         
@@ -267,19 +269,9 @@ class MidiLoop:
                         # we are not zeroing time counters, because most probably we are not exactly on the
                         # time for this note, only near.
                         self.tick_counters[i] -= self.current_msgs[i].time   
-                        self.current_msgs[i] = next(self.midi_gens[i])        
-            elif msg.type == "note_on": #stupid ableton has broken cc stuff, using notes for now. TBA - replace with CC.
-                print(msg)    
-                self.command_messages_stack.append(msg.note)    
-                
-            else:
-                pass          
+                        self.current_msgs[i] = next(self.midi_gens[i])            
                            
         return True
- 
-
-
-
 
 def main():
     
@@ -292,17 +284,16 @@ def main():
 
     player = MidiLoop(  input_port, output_port)
 
-    path=mm_config_path
-
+    path="file.mid"
     player.load_file(path)
 
     while True:   
-    
-        still_playing = player.play()
+        input_messages =  list(input_port.iter_pending() )
+        still_playing = player.play(input_messages)
         if not still_playing:
             print("RELOAD")
-            player.stop_all_tracked_notes()
-            player.rewind()
+            
+            
     
     # Close the ports when finished
     print("closinge ports")
