@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Dashboard</title>
+    <link rel="stylesheet" href="/static/jstree.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="/static/jstree.min.js"></script>
+</head>
+<body>
+    <h1>API Dashboard</h1>
+    <div id="midi_lib_tree"></div>
+    <script>
+    $(function() {
+        $.get("/api/midi_lib", function(data) {
+            var formattedData = formatData(data);
+            $('#midi_lib_tree').jstree({
+                'core': {
+                    'data': formattedData
+                }
+            });
+        });
+    });
+
+    function formatData(data) {
+        var result = [];
+        for (var key in data) {
+            var item = {};
+            item.text = key;
+            if (typeof data[key] === 'object') {
+                item.children = formatData(data[key]);
+            }
+            result.push(item);
+        }
+        return result;
+    }
+    </script>
+</body>
+</html>
