@@ -7,7 +7,7 @@ midi_lib
 *copy*
 mm_config.py
 
-
+distr
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

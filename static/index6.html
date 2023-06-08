@@ -36,11 +36,11 @@
             color: #000;
             background: #fff;
         }
-
         #midi-file-details {
             border-collapse: collapse;  /* This combines adjacent cell borders into a single border */
+            width: 100%;  /* Full width */
+            margin-top: 20px;
         }
-
         #midi-file-details th, #midi-file-details td {
             border: 1px solid #fff;  /* This sets the border color to white */
             padding: 10px;  /* This adds some padding to the cells */
@@ -53,7 +53,7 @@
     </div>
     <div id="right-side-container">
         <input type="text" id="midi-file-path" readonly>
-        <table id="midi-file-details" style="width:100%; margin-top:20px;">
+        <table id="midi-file-details">
             <thead>
                 <tr>
                     <th>Song section</th>
@@ -94,8 +94,6 @@
         }
 
         $(document).ready(function () {
-            var selectedNodeData = null;
-
             $.ajax({
                 url: '/api/midi_lib',
                 method: 'GET',
@@ -108,26 +106,42 @@
                                 'dots': true,
                                 'icons': true
                             }
-                        }
+                        },
+                        'plugins': ['dnd']
                     }).bind("select_node.jstree", function (e, data) {
                         // Check if it is a file node
                         if(data.node.icon === "jstree-file"){
                             var path = data.node.data.path;
                             $('#midi-file-path').val(path);
-                           selectedNodeData = path;
+                        }
+                    }).bind("start_drag.jstree", function (e, data) {
+                        console.log("govno pizdec");
+                        // Check if it is a file node
+                        if(data.node.icon === "jstree-file"){
+                            e.originalEvent.dataTransfer.setData('text', data.node.data.path);
                         }
                     });
                 }
             });
 
+            $(document).on('dnd_move.vakata', function (e, data) {
+                data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+            }).on('dnd_stop.vakata', function (e, data) {
+                if(data.event.target.id === "midi-tree") {
+                    // Prevent drop inside the tree
+                    return false;
+                }
+            });
+
             // Add the first row
             $('#add-first-row-btn').on('click', function () {
-                var row = '<tr><td ></td><td class="groove-cell" ></td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
+                var row = '<tr><td></td><td class="groove-cell"></td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
                 $('#midi-file-details tbody').append(row);
             });
 
+            // Add a row after a specific row
             $(document).on('click', '.add-row-btn', function () {
-                var row = '<tr><td></td><td class="groove-cell">aaaaa</td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
+                var row = '<tr><td></td><td class="groove-cell"></td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
                 $(this).parents('tr').after(row);
             });
 
@@ -136,18 +150,24 @@
                 $(this).parents('tr').remove();
             });
 
-            // Drag and drop handlers
+            // Allow drop on the groove cells
             $(document).on('dragover', '.groove-cell', function(event) {
                 event.preventDefault();  // This is necessary to allow a drop
             });
 
+            // Handle drop on the groove cells
             $(document).on('drop', '.groove-cell', function(event) {
+ 
                 event.preventDefault();  // This prevents the browser's default handling of the data
-                if (selectedNodeData) {
-                    $(this).text(selectedNodeData);
-                    selectedNodeData = null;  // Clear the data
+                console.log("blat");
+                var data = event.originalEvent.dataTransfer.getData('text');
+        
+                if (data) {
+                    $(this).text(data);
                 }
             });
+
+  
         });
     </script>
 </body>

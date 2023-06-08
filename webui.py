@@ -33,6 +33,20 @@ def songs_lib():
     content = os.listdir('songs_lib')
     return jsonify(content)
 
+# API to get a song's JSON data from songs_lib
+@app.route('/api/songs_lib/<song_filename>', methods=['GET'])
+def get_song_content(song_filename):
+    filepath = os.path.join('songs_lib', song_filename)
+
+    if not os.path.isfile(filepath):
+        return jsonify({'error': 'The specified file does not exist'}), 404
+
+    with open(filepath, 'r') as f:
+        content = json.load(f)
+
+    return jsonify(content)
+
+
 # API to save JSON file to songs_lib
 @app.route('/api/songs_lib', methods=['POST'])
 def save_to_songs_lib():
@@ -46,6 +60,8 @@ def save_to_songs_lib():
         json.dump(data, f)
 
     return jsonify({'message': 'File saved successfully'})
+
+
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

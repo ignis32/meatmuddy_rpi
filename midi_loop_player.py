@@ -232,7 +232,7 @@ class MidiLoop:
         beat_number = self.calc_beat_number()
         if  not self.current_beat_number == beat_number:
             self.current_beat_number = beat_number
-            print (f"abs tick: {self.abs_tick_counter}  ticks left: {self.loop_length_in_ticks - self.abs_tick_counter} real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th file: {os.path.basename(self.file_name)}") 
+          #  print (f"abs tick: {self.abs_tick_counter}  ticks left: {self.loop_length_in_ticks - self.abs_tick_counter} real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th file: {os.path.basename(self.file_name)}") 
 
     
     def play(self, input_messages):
@@ -273,29 +273,29 @@ class MidiLoop:
                            
         return True
 
-def main():
+# def main():
     
-    # init  midi ports.
-    input_port_name = 'f_midi'
-    output_port_name = 'f_midi'
+#     # init  midi ports.
+#     input_port_name = 'f_midi'
+#     output_port_name = 'f_midi'
 
-    output_port = mido.open_output(output_port_name)
-    input_port = mido.open_input(input_port_name)
+#     output_port = mido.open_output(output_port_name)
+#     input_port = mido.open_input(input_port_name)
 
-    player = MidiLoop(  input_port, output_port)
+#     player = MidiLoop(  input_port, output_port)
 
-    path="file.mid"
-    player.load_file(path)
+#     path="file.mid"
+#     player.load_file(path)
 
-    while True:   
-        input_messages =  list(input_port.iter_pending() )
-        still_playing = player.play(input_messages)
-        if not still_playing:
-            print("RELOAD")
+#     while True:   
+#         input_messages =  list(input_port.iter_pending() )
+#         still_playing = player.play(input_messages)
+#         if not still_playing:
+#             print("RELOAD")
             
             
     
-    # Close the ports when finished
-    print("closinge ports")
-    output_port.close()
-    input_port.close()
+#     # Close the ports when finished
+#     print("closinge ports")
+#     output_port.close()
+#     input_port.close()
