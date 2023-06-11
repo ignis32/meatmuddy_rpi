@@ -3,7 +3,12 @@ import mido
 from transitions import Machine 
 
 from midi_loop_player import MidiLoop
+
 from meatmuddy_config import command_notes as command_notes
+from meatmuddy_config import command_cc as command_cc
+from meatmuddy_config import command_method as command_method
+
+
 from playinfo import PlayInfo as PlayInfo
 from playinfo import VisualizePlayInfo as VisualizePlayInfo
 
@@ -12,6 +17,14 @@ from playinfo import VisualizePlayInfo as VisualizePlayInfo
 # from transitions.extensions import GraphMachine
 # import json
 # import yaml
+
+
+def get_swap_dict(d):
+    return {v: k for k, v in d.items()}
+
+
+notes_command = get_swap_dict(command_notes)
+cc_command = get_swap_dict(command_cc)
 
 class SongFlags:
    
@@ -186,19 +199,19 @@ class MidiSong:
             command = self.input_commands_queue.pop(0)  
             print(f"incoming command: {command}")
 
-            if command == command_notes["prev"]:
+            if command == "prev":
                 print("command prev part")
                 self.flag.prev = True
               
-            elif command == command_notes["next"]:
+            elif command == "next":
                 print("command next part")
                 self.flag.next = True
                  
-            elif command == command_notes["fill"]:
+            elif command == "fill":
                 print("command insert fill")
                 self.flag.fill = True
 
-            elif command == command_notes["startstop"]:    
+            elif command ==  "startstop" :    
                 print("command start/stop received")
                 self.flag.startstop = True
             else:
@@ -214,19 +227,33 @@ class MidiSong:
         return self.play_info       
 
     def extract_command_messages(self, input_messages):
-        for msg in input_messages:
-            if (
-                msg.type == "note_on"
-            ):  # stupid ableton has broken cc stuff, using notes for now. TBA - replace with CC.
-                print(msg)
-                self.input_commands_queue.append(msg.note)
-                print(self.input_commands_queue)
+
+        if command_method == "notes":
+            for msg in input_messages:
+                if  msg.type == "note_on" :  # stupid ableton has broken cc stuff, using notes for now. TBA - replace with CC.
+                    print(msg)
+                    try:
+                        self.input_commands_queue.append( notes_command [msg.note])
+                        print(self.input_commands_queue)
+                    except: # ignore irrelevant notes
+                        pass
+
+        elif command_method =="cc":
+            for msg in input_messages:
+                if msg.is_cc:          
+                    print(msg)
+                    try:
+                        self.input_commands_queue.append(cc_command[msg.control])
+                        print(self.input_commands_queue)
+                    except:  #ignore irrelevant control messages
+                        pass
+        else:
+            raise ValueError("no command method choosen")
 
     def extract_viz_data_from_loop(self, loop):
         self.play_info.beat_number = loop.current_beat_number  ##
         self.play_info.total_beat_numbers = len( loop.beats_absolute_time_ticks)
         self.play_info.file_name = loop.file_name
-        #print (self.play_info.song_part_number )
         self.play_info.song_part_number = self.current_part_index
         self.play_info.fill_number = self.fill_index
 
