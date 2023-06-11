@@ -42,19 +42,24 @@ class MidiSong:
 
         # order is a key, transitions seem to be checked in the same order as edded. Narrow condition scope should be placed before more generic transition rule.
         # in other words, if we change next two lines order, it would always go to playing groove.
+
+        # we can achive same using "unless" more exactly
         self.tr( source='playing_intro',  dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop'], after = 'clean_flags') # to stop a falsestart
         self.tr( source='playing_intro',  dest='playing_groove', conditions=['flag_end_of_midi_loop'], after = 'clean_flags')
         
         
-     
-        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills'], after = 'clean_flags') 
+        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills','flag_next'], after = ['clean_flags','set_flag_next']) 
+        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills'], after = ['clean_flags']) 
+        
         self.tr( source='playing_groove', dest='playing_outro',  conditions=['flag_end_of_midi_loop','flag_startstop','c_song_has_outro'], after = 'clean_flags')                                                                                                               
         self.tr( source='playing_groove', dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop','c_song_no_outro' ], after = 'clean_flags')  
         
         # processing switch to next groove, both from fill and groove
         self.tr( source='playing_groove', dest='playing_groove', conditions=['flag_end_of_midi_loop', 'flag_next' ], after = 'next_part') 
+
         self.tr( source='playing_fill',   dest='playing_groove', conditions=['flag_end_of_midi_loop', 'flag_next' ], after = 'next_part')  
         self.tr( source='playing_fill',   dest='playing_groove', conditions=['flag_end_of_midi_loop'], after = 'next_fill')  # returning to the same groove
+
         self.tr( source='playing_outro',  dest='idle',           conditions=['flag_end_of_midi_loop'], after = 'clean_flags')
     
     
@@ -79,6 +84,10 @@ class MidiSong:
         self.flag.fill = False
         self.flag.startstop = False
         self.flag.end_of_midi_loop = False
+
+    # fixes and workarounds
+    def set_flag_next(self):
+          self.flag.next = True
 
     # condition functions 
     def flag_prev(self):
@@ -115,20 +124,20 @@ class MidiSong:
         
 
     def c_it_is_fill_time(self):
-        return self.get_current_part().ticks_left_to_end  <= self.get_current_part().fills[self.fill_index].loop_length_in_ticks
-            
+        if len(self.get_current_part().fills):
+            return self.get_current_part().ticks_left_to_end  <= self.get_current_part().fills[self.fill_index].loop_length_in_ticks
+        else:
+            return False  # it's never time to play fill if there are no fills.
     
     #self.get_graph().draw('.my_state_diagram.png', prog='dot')
-
     #self.to_idle()
 
     def __init__(self, input_port, output_port, song_json):
 
-          
-        self.flag=SongFlags()   # command flags
-        self.setup_state_machine()
-        self.play_info = PlayInfo()  # set of data for UI
-        self.viz = VisualizePlayInfo() 
+        self.flag=SongFlags()   # command flags grouped in one place
+        self.setup_state_machine()      # main hub for setting logic between states
+        self.play_info = PlayInfo()     # set of data for UI extracted from loops and other places.
+        self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
         # midi ports 
         self.input_port = input_port    
         self.output_port = output_port
@@ -139,29 +148,23 @@ class MidiSong:
         self.song_parts = []
 
         # state
-        self.current_part_index = 0   # index for cycling throug grooves
-        self.fill_index = 0  # Index for cycling through fills
+        self.current_part_index = 0   # index for cycling through grooves
+        self.fill_index = 0           # Index for cycling through fills
         
-        # place to store input cc/notes for controlling loops
+        # place to store input cc/notes for controlling drum machine
         self.input_commands_queue =  []
         self.load_song()   
 
     def load_song(self):
+        
         self.song_data = json.loads(song_json)
-
-        # Tba handle absence of intro and outro
         self.intro = self.create_midi_loop(self.song_data["intro"]["groove"])
-        if self.intro is not None:
-            self.next_part_scheduled = True  # intro is going to  switch to first section in any case .
-        else:
-            self.current_part_index = 1 # if no intro, start with first groove.
-
         self.outro = self.create_midi_loop(self.song_data["outro"]["groove"])
    
         for part in self.song_data["song_parts"]:
             midi_part = self.create_midi_loop(part["groove"])
-            midi_part.fills = [self.create_midi_loop(fill) for fill in part["fills"]]  #TBA  case with no fills. Looks like it would be  []
-           # midi_part.transition = self.create_midi_loop(part["transition"])
+            midi_part.fills = [self.create_midi_loop(fill) for fill in part["fills"]]   
+            # midi_part.transition = self.create_midi_loop(part["transition"])
             self.song_parts.append(midi_part)
 
     def create_midi_loop(self, file):
@@ -180,7 +183,7 @@ class MidiSong:
 
     def process_commands(self):
         if self.input_commands_queue:
-            command = self.input_commands_queue.pop(0)  # tba correct sequence?
+            command = self.input_commands_queue.pop(0)  
             print(f"incoming command: {command}")
 
             if command == command_notes["prev"]:
@@ -206,9 +209,8 @@ class MidiSong:
         self.play_info.next_part_scheduled =  self.flag.next
         self.play_info.prev_part_scheduled =  self.flag.prev
         self.play_info.startstop_scheduled =  self.flag.startstop
-
         self.play_info.state = self.state
-        
+        # tba  - i do not like that other parts of updating play info data is scattered all over the place
         return self.play_info       
 
     def extract_command_messages(self, input_messages):
@@ -240,13 +242,13 @@ class MidiSong:
          
         while True:
             self.viz.visualize(self.get_play_info())
-            input_midi_messages = list(self.input_port.iter_pending())
+            input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
             self.extract_command_messages(input_midi_messages)
             self.process_commands()
-            #print(self.state)
  
             if self.state == "idle" :
                 pass
+
             elif self.state == "playing_intro" :
                self.flag_end_of_midi_loop = self.intro.play(input_midi_messages)
                self.extract_viz_data_from_loop(self.intro)
@@ -254,22 +256,23 @@ class MidiSong:
             elif self.state == "playing_groove":
                 self.flag_end_of_midi_loop = self.get_current_part().play(input_midi_messages)
                 self.extract_viz_data_from_loop(self.get_current_part())
-               
-
 
                 # to cover a case when user requests fill later then it was actually best to start,  we play fill silently in parallel.
+                # this way, when we actualy trigger playing fill, it already would be in sync with main groove, and can be played as a drop in replacement
                 if self.c_it_is_fill_time:
-                    self.get_current_part_fill().play(input_midi_messages, dry_run = True)
+                    self.get_current_part_fill().play(input_midi_messages, dry_run = True) 
 
-                if self.flag_end_of_midi_loop:  #handling rewind separatly due to no guarantee that both loops would end in the same time
+                if self.flag_end_of_midi_loop:  # handling rewind separatly due to no guarantee that both loops would end in the same time
                     self.get_current_part().rewind()        #TBA check rewind  time precision
-                    self.get_current_part_fill().rewind()
-                    
+                    self.get_current_part_fill().rewind()              
         
             elif self.state == "playing_fill":
-               #self.flag_end_of_midi_loop = 
+               
                self.get_current_part_fill().play(input_midi_messages)
-               self.flag_end_of_midi_loop = self.get_current_part().play(input_midi_messages, dry_run= True) # calculate ending by the playing main groove silently less effective but more realible for keeping timeing to my guess.
+
+               # calculate ending by the playing main groove silently.
+               # Less resource effective but more realible for keeping timing strict, to my guess.
+               self.flag_end_of_midi_loop = self.get_current_part().play(input_midi_messages, dry_run= True) 
                self.extract_viz_data_from_loop(self.get_current_part_fill())
                
                if self.flag_end_of_midi_loop:  #handling rewind separatly due to no guarantee that both loops would end in the same time
