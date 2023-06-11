@@ -5,15 +5,27 @@ class PlayInfo:
                  fill_scheduled=False, startstop_scheduled=False):
 
         self.file_name = file_name
+
         self.beat_number = beat_number
         self.total_beat_numbers = total_beat_numbers
+        
         self.bar_number = bar_number
         self.total_bar_number = total_bar_number
+        
+        self.song_part_number  = 0
+        self.total_song_part_numbers = 0
+
+        self.fill_number =0
+        self.total_fill_numbers =0
+
         self.loop_type = loop_type
         self.prev_part_scheduled = prev_part_scheduled
         self.next_part_scheduled = next_part_scheduled
         self.fill_scheduled = fill_scheduled
         self.startstop_scheduled = startstop_scheduled
+        self.state  = "aaaa"
+
+       
 
     def __eq__(self, other):
         if isinstance(other, PlayInfo):
@@ -40,21 +52,24 @@ class VisualizePlayInfo:
         return filename
     def render(self):
         # Define a mapping of loop types to their respective symbols
-        loop_type_symbols = {"intro": "I", "outro": "O", "groove": "G", "fill": "F"}
+        #loop_type_symbols = {"intro": "I", "outro": "O", "groove": "G", "fill": "F"}
 
         # Use the mapping to get the symbol for the loop type, default to "" if loop type is not recognized
-        loop_type_symbol = loop_type_symbols.get(self.prev_play_info.loop_type, "")
+        #loop_type_symbol = loop_type_symbols.get(self.prev_play_info.loop_type, "")
 
         # Add the symbol to the filename
-        print(f"Filename: ({loop_type_symbol}) {self.get_filename_from_path(self.prev_play_info.file_name)}")
+        print(f"Filename: ({self.prev_play_info.state}) {self.get_filename_from_path(self.prev_play_info.file_name)}")
         print(f"Beats: {self.prev_play_info.beat_number}/{self.prev_play_info.total_beat_numbers}")
         print(f"Bars: {self.prev_play_info.bar_number}/{self.prev_play_info.total_bar_number}")
+        print(f"Part: {self.prev_play_info.song_part_number +1}/{self.prev_play_info.total_song_part_numbers}")
+        print(f"Fill: {self.prev_play_info.fill_number+1}/{self.prev_play_info.total_fill_numbers}")
         
         # Create the string based on the boolean values
         state_str = "["
         state_str += "F" if self.prev_play_info.fill_scheduled else "_"
         state_str += "P" if self.prev_play_info.prev_part_scheduled else "_"
         state_str += "N" if self.prev_play_info.next_part_scheduled else "_"
+        state_str += "S" if self.prev_play_info.startstop_scheduled else "_"
         state_str += "]"
         
         print(state_str)

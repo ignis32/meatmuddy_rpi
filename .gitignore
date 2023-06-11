@@ -6,6 +6,8 @@ snippet_archive
 midi_lib
 *copy*
 mm_config.py
+compose_for_gpt.sh
+fullcode.txt
 
 distr
 # Byte-compiled / optimized / DLL files

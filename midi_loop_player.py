@@ -235,7 +235,7 @@ class MidiLoop:
           #  print (f"abs tick: {self.abs_tick_counter}  ticks left: {self.loop_length_in_ticks - self.abs_tick_counter} real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th file: {os.path.basename(self.file_name)}") 
 
     
-    def play(self, input_messages):
+    def play(self, input_messages, dry_run=False):  # Returns True if loop finished. False, if still playing.
         self.command_messages_stack = []
 
         # iterate all incoming midi stuff in input  buffer
@@ -262,16 +262,16 @@ class MidiLoop:
                             if all(self.num_tracks_ended):  ### if all tracks stopped, its a loop end
                                 self.rewind()  # reset all the counters and recreate gens.
                                 self.stop_all_tracked_notes()
-                                return False # report loop end
+                                return True # report loop end
                             break # otherwise
-                        
-                        self.send_msg(self.current_msgs[i])
+                        if not dry_run:
+                            self.send_msg(self.current_msgs[i])
                         # we are not zeroing time counters, because most probably we are not exactly on the
                         # time for this note, only near.
                         self.tick_counters[i] -= self.current_msgs[i].time   
                         self.current_msgs[i] = next(self.midi_gens[i])            
                            
-        return True
+        return False  
 
 # def main():
     
