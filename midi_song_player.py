@@ -57,25 +57,32 @@ class MidiSong:
         # in other words, if we change next two lines order, it would always go to playing groove.
 
         # we can achive same using "unless" more exactly
-        self.tr( source='playing_intro',  dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop'], after = 'clean_flags') # to stop a falsestart
+        self.tr( source='playing_intro',  dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop'], after = ['clean_flags','reset_indexes']) # to stop a falsestart
         self.tr( source='playing_intro',  dest='playing_groove', conditions=['flag_end_of_midi_loop'], after = 'clean_flags')
         
         
-        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills','flag_next'], after = ['clean_flags','set_flag_next']) 
-        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills'], after = ['clean_flags']) 
+        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills','flag_next'], after = ['clean_flags_but_next' ]) 
+        self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills'], after = ['clean_flags_but_next']) 
         
         self.tr( source='playing_groove', dest='playing_outro',  conditions=['flag_end_of_midi_loop','flag_startstop','c_song_has_outro'], after = 'clean_flags')                                                                                                               
-        self.tr( source='playing_groove', dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop','c_song_no_outro' ], after = 'clean_flags')  
+        self.tr( source='playing_groove', dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop','c_song_no_outro' ], after = ['clean_flags','reset_indexes' ])  
         
         # processing switch to next groove, both from fill and groove
         self.tr( source='playing_groove', dest='playing_groove', conditions=['flag_end_of_midi_loop', 'flag_next' ], after = 'next_part') 
 
+        
+        self.tr( source='playing_fill',   dest='playing_outro',  conditions=['flag_end_of_midi_loop', 'flag_startstop', 'c_song_has_outro' ], after = 'clean_flags')  
+        self.tr( source='playing_fill',   dest='idle',           conditions=['flag_end_of_midi_loop', 'flag_startstop', 'c_song_no_outro' ], after = 'clean_flags')  
+
         self.tr( source='playing_fill',   dest='playing_groove', conditions=['flag_end_of_midi_loop', 'flag_next' ], after = 'next_part')  
         self.tr( source='playing_fill',   dest='playing_groove', conditions=['flag_end_of_midi_loop'], after = 'next_fill')  # returning to the same groove
 
-        self.tr( source='playing_outro',  dest='idle',           conditions=['flag_end_of_midi_loop'], after = 'clean_flags')
+        self.tr( source='playing_outro',  dest='idle',           conditions=['flag_end_of_midi_loop'], after = ['clean_flags', 'reset_indexes'])
     
-    
+    def reset_indexes(self):
+        self.current_part_index = 0
+        self.fill_index =  0
+        
     def next_part(self):
         self.current_part_index =  (self.current_part_index + 1) % len(self.song_parts)
         self.fill_index =  0
@@ -97,10 +104,20 @@ class MidiSong:
         self.flag.fill = False
         self.flag.startstop = False
         self.flag.end_of_midi_loop = False
+    def clean_flags_but_next(self):
+       # self.flag.prev = False
+       # self.flag.next = False
+        self.flag.fill = False
+       # self.flag.startstop = False
+        self.flag.end_of_midi_loop = False
+
+
+
+   # def clean_flag_next
 
     # fixes and workarounds
-    def set_flag_next(self):
-          self.flag.next = True
+    # def set_flag_next(self):
+    #       self.flag.next = True
 
     # condition functions 
     def flag_prev(self):
