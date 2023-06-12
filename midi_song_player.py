@@ -1,66 +1,63 @@
+#external deps
 import json
 import mido
 from transitions import Machine 
-
+#meatmuddy code
 from midi_loop_player import MidiLoop
+from playinfo import PlayInfo as PlayInfo
+from playinfo import VisualizePlayInfo as VisualizePlayInfo
 
+# config file   
 from meatmuddy_config import command_notes as command_notes
 from meatmuddy_config import command_cc as command_cc
 from meatmuddy_config import command_method as command_method
 
 
-from playinfo import PlayInfo as PlayInfo
-from playinfo import VisualizePlayInfo as VisualizePlayInfo
-
-#export
-# from transitions.extensions.markup import MarkupMachine
-# from transitions.extensions import GraphMachine
-# import json
-# import yaml
-
-
+#load config
 def get_swap_dict(d):
     return {v: k for k, v in d.items()}
-
 
 notes_command = get_swap_dict(command_notes)
 cc_command = get_swap_dict(command_cc)
 
+# just a container for bunch of bool flags for song controls.
 class SongFlags:
    
     def __init__(self):
 
         #command flags
-        self.prev =      False       # previous scheduled
-        self.next =      False       # Indicates if next part is scheduled
-        self.fill =      False       # Indicates if fill is scheduled
+        self.prev = False       # previous part scheduled
+        self.next = False       # Indicates if next part is scheduled
+        self.fill = False       # Indicates if fill is scheduled
         self.startstop = False  # startstop is scheduled
 
         self.end_of_midi_loop = False
          
 class MidiSong:
+
     #state machine 
-    def tr(self, ** params):
+
+    # using the same transition function for everything as a shorthand. Not exactly the textbook state machine.
+    def tr(self, ** params):  
         self.machine.add_transition(trigger='sm_loop', **params)
-        
+
+  
     def setup_state_machine(self):
  
         self.states =  ["idle", "playing_intro", "playing_outro",  "playing_groove", "playing_fill"]
         self.machine = Machine(model=self, states=self.states, initial='idle')
-        #self.machine = GraphMachine(model=self, states=self.states, initial='idle',show_conditions=True , use_pygraphviz=False,       )
 
         # Add transitions which describe logic of switching between states.
+        # Order matters, as transition rules seem to be checked in the same order as added.  
+        # This means a lot for overlapping rules, more narrow rule should be defined before more "generic" one.
+
+        # we can achive same using "unless" more exactly. 
         self.tr( source='idle', dest='playing_intro',            conditions= ['flag_startstop', 'c_song_has_intro'], after = 'clean_flags')
         self.tr( source='idle', dest='playing_groove',           conditions=['flag_startstop','c_song_no_intro'], after = 'clean_flags')
 
-        # order is a key, transitions seem to be checked in the same order as edded. Narrow condition scope should be placed before more generic transition rule.
-        # in other words, if we change next two lines order, it would always go to playing groove.
-
-        # we can achive same using "unless" more exactly
         self.tr( source='playing_intro',  dest='idle',           conditions=['flag_end_of_midi_loop','flag_startstop'], after = ['clean_flags','reset_indexes']) # to stop a falsestart
         self.tr( source='playing_intro',  dest='playing_groove', conditions=['flag_end_of_midi_loop'], after = 'clean_flags')
-        
-        
+                
         self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills','flag_next'], after = ['clean_flags_but_next' ]) 
         self.tr( source='playing_groove', dest='playing_fill',   conditions=['flag_fill','c_it_is_fill_time','c_part_has_fills'], after = ['clean_flags_but_next']) 
         
@@ -70,7 +67,6 @@ class MidiSong:
         # processing switch to next groove, both from fill and groove
         self.tr( source='playing_groove', dest='playing_groove', conditions=['flag_end_of_midi_loop', 'flag_next' ], after = 'next_part') 
 
-        
         self.tr( source='playing_fill',   dest='playing_outro',  conditions=['flag_end_of_midi_loop', 'flag_startstop', 'c_song_has_outro' ], after = 'clean_flags')  
         self.tr( source='playing_fill',   dest='idle',           conditions=['flag_end_of_midi_loop', 'flag_startstop', 'c_song_no_outro' ], after = 'clean_flags')  
 
@@ -104,20 +100,15 @@ class MidiSong:
         self.flag.fill = False
         self.flag.startstop = False
         self.flag.end_of_midi_loop = False
+
+    # a bit different cleaning for the case when fill comes in between the moment when we press next and the moment when actual "next" would happen.
+    # and same for startstop.
     def clean_flags_but_next(self):
        # self.flag.prev = False
        # self.flag.next = False
         self.flag.fill = False
        # self.flag.startstop = False
         self.flag.end_of_midi_loop = False
-
-
-
-   # def clean_flag_next
-
-    # fixes and workarounds
-    # def set_flag_next(self):
-    #       self.flag.next = True
 
     # condition functions 
     def flag_prev(self):
@@ -149,18 +140,14 @@ class MidiSong:
         return self.outro is None
     
     def c_part_has_fills(self):
-        print(bool(len(self.get_current_part().fills)))
         return bool(len(self.get_current_part().fills))
         
-
     def c_it_is_fill_time(self):
         if len(self.get_current_part().fills):
             return self.get_current_part().ticks_left_to_end  <= self.get_current_part().fills[self.fill_index].loop_length_in_ticks
         else:
             return False  # it's never time to play fill if there are no fills.
-    
-    #self.get_graph().draw('.my_state_diagram.png', prog='dot')
-    #self.to_idle()
+
 
     def __init__(self, input_port, output_port, song_json):
 
@@ -185,7 +172,7 @@ class MidiSong:
         self.input_commands_queue =  []
         self.load_song()   
 
-    def load_song(self):
+    def load_song(self):  #tba some error handling?
         
         self.song_data = json.loads(song_json)
         self.intro = self.create_midi_loop(self.song_data["intro"]["groove"])
@@ -194,7 +181,6 @@ class MidiSong:
         for part in self.song_data["song_parts"]:
             midi_part = self.create_midi_loop(part["groove"])
             midi_part.fills = [self.create_midi_loop(fill) for fill in part["fills"]]   
-            # midi_part.transition = self.create_midi_loop(part["transition"])
             self.song_parts.append(midi_part)
 
     def create_midi_loop(self, file):
@@ -211,7 +197,7 @@ class MidiSong:
     def get_current_part_fill(self):
         return self.song_parts[self.current_part_index].fills[self.fill_index]
 
-    def process_commands(self):
+    def process_commands(self): # processing commands one per cycle.   #tba - consider running it alltogether? why spread?
         if self.input_commands_queue:
             command = self.input_commands_queue.pop(0)  
             print(f"incoming command: {command}")
