@@ -1,12 +1,13 @@
 
 *.mid
-*.txt
+fullcode.txt
 *.json
 snippet_archive
 midi_lib
 *copy*
 mm_config.py
 compose_for_gpt.sh
+compose_for_gpt.py
 fullcode.txt
 
 distr
