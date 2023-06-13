@@ -2,7 +2,9 @@
 Raspberry pi midi drum machine
 
 
-# Enable USB gadget mode with midi: RPI4
+# Enable USB gadget mode with midi: RPI0, 
+
+Raspbian Bullseye
 
  /boot/config.txt
 
@@ -14,8 +16,17 @@ dtoverlay=dwc2
 
 
 ```
-g_midi
+dwc2,g_midi
 ```
+
+# add current user to audio group to allow access to midi ports:
+
+sudo usermod -aG audio <username>
+
+# add g_midi to /etc/rc.local before exit 0
+
+modprobe g_midi
+
 
 
 Check that port appeared:
@@ -28,8 +39,8 @@ IO  hw:1,0    f_midi
 
 sudo apt install python3-pip
 sudo apt-get install librtmidi-dev 
-sudo pip install python-rtmidi
-
 
 pip install -r requirements.txt
+pip install python-rtmidi  # takes time.
+
 
