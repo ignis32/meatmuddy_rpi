@@ -1,3 +1,4 @@
+import time
 #external deps
 import json
 import mido
@@ -5,8 +6,8 @@ from transitions import Machine
 #meatmuddy code
 from midi_loop_player import MidiLoop
 from playinfo import PlayInfo as PlayInfo
-from playinfo import VisualizePlayInfo as VisualizePlayInfo
-
+from playinfo import VisualizePlayInfo as VisualizePlayInfo          # for cli prints
+from playinfo import VisualizePlayInfoWaveshareOLED as VisualizePlayInfoWaveshareOLED # for epaper screen
 # config file   
 from meatmuddy_config import command_notes as command_notes
 from meatmuddy_config import command_cc as command_cc
@@ -144,6 +145,7 @@ class MidiSong:
         
     def c_it_is_fill_time(self):
         if len(self.get_current_part().fills):
+           # print(f"filltime   {self.get_current_part().ticks_left_to_end }   {self.get_current_part().fills[self.fill_index].loop_length_in_ticks}")
             return self.get_current_part().ticks_left_to_end  <= self.get_current_part().fills[self.fill_index].loop_length_in_ticks
         else:
             return False  # it's never time to play fill if there are no fills.
@@ -154,7 +156,9 @@ class MidiSong:
         self.flag=SongFlags()   # command flags grouped in one place
         self.setup_state_machine()      # main hub for setting logic between states
         self.play_info = PlayInfo()     # set of data for UI extracted from loops and other places.
-        self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
+      #  self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
+    
+        self.viz = VisualizePlayInfoWaveshareOLED()  # realtime printouts of that info.  #TBA support for waveshare displays. 
         # midi ports 
         self.input_port = input_port    
         self.output_port = output_port
@@ -243,7 +247,7 @@ class MidiSong:
 
         elif command_method =="cc":
             for msg in input_messages:
-                if msg.is_cc:          
+                if msg.type == "control_change":          
                     print(msg)
                     try:
                         self.input_commands_queue.append(cc_command[msg.control])
@@ -271,8 +275,11 @@ class MidiSong:
     def play(self):
          
         while True:
-            self.viz.visualize(self.get_play_info())
+            start_time = time.process_time()
+            
             input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
+            # if len(input_midi_messages) == 0:
+            #     time.sleep (0.01) # give viz thread to breathe
             self.extract_command_messages(input_midi_messages)
             self.process_commands()
  
@@ -289,7 +296,8 @@ class MidiSong:
 
                 # to cover a case when user requests fill later then it was actually best to start,  we play fill silently in parallel.
                 # this way, when we actualy trigger playing fill, it already would be in sync with main groove, and can be played as a drop in replacement
-                if self.c_it_is_fill_time:
+               # print(".")
+                if self.c_it_is_fill_time():
                     self.get_current_part_fill().play(input_midi_messages, dry_run = True) 
 
                 if self.flag_end_of_midi_loop:  # handling rewind separatly due to no guarantee that both loops would end in the same time
@@ -315,7 +323,12 @@ class MidiSong:
             else:
                 raise ValueError(f"unknown state {self.state} quitting.")
                 exit()
+            self.viz.visualize(self.get_play_info())
             self.sm_loop()
+            
+            end_time = time.process_time()
+            execution_time = end_time - start_time
+            print(execution_time*1000)
 
             
 

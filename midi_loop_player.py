@@ -83,7 +83,7 @@ class MidiLoop:
         # communication with midi song
         self.loop_length_in_ticks =0
         self.ticks_left_to_end = None
-        self.command_messages_stack= None
+         
          
     def stop_all_tracked_notes(self):
         notes_off = self.note_tracker.get_all_notes_off()
@@ -147,6 +147,7 @@ class MidiLoop:
                 msg.time += next_bar_time - last_note_off_time
                 print(f"fixed ending {msg.time}")
                 self.loop_length_in_ticks=next_bar_time  # basically we've just calculated a loop length expressed in ticks.
+                self.ticks_left_to_end = next_bar_time
                 break  # assuming only one end_of_track event per track
         
 
@@ -161,7 +162,7 @@ class MidiLoop:
 
     
 
-    @measure_execution_time
+    #@measure_execution_time
     def load_file(self, midi_file_path):
         print ("\n\n")
         print(f"loading drum loop from: {midi_file_path} ")
@@ -183,7 +184,7 @@ class MidiLoop:
         print( self.get_beats_absolute_time_ticks())
         self.rewind() # reset iterators and time counters.
    
-    @measure_execution_time
+   # @measure_execution_time
     def rewind(self):
 
         self.midi_gens = [iter(track) for track in self.midi_file.tracks]
@@ -236,8 +237,20 @@ class MidiLoop:
 
     
     def play(self, input_messages, dry_run=False):  # Returns True if loop finished. False, if still playing.
-        self.command_messages_stack = []
+      
+        clock_messages_count=0
+        for msg in input_messages:
+          if msg.type == 'clock':
+            clock_messages_count += 1
 
+        if clock_messages_count > 1:
+                print (input_messages)
+                print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
+             #   print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
+             #   print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
+               # print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
+            
+       
         # iterate all incoming midi stuff in input  buffer
         for msg in input_messages: 
             if msg.type == 'clock':
@@ -252,7 +265,7 @@ class MidiLoop:
 
                     self.tick_counters[i] += self.ticks_per_clock
                                         
-                    LOOKAHEAD_OFFSET=  self.ticks_per_clock/2 # for a small lookahead for smoother play. 
+                    LOOKAHEAD_OFFSET= 0 # self.ticks_per_clock/2 # for a small lookahead for smoother play. 
                     # we process all message which are in the past or near ahead current clock.
                     # We do not use any internal timing, our sends are just immediate reaction to the incoming midi clock              
                     while self.tick_counters[i] >= self.current_msgs[i].time  - LOOKAHEAD_OFFSET:  
@@ -262,6 +275,7 @@ class MidiLoop:
                             if all(self.num_tracks_ended):  ### if all tracks stopped, its a loop end
                                 self.rewind()  # reset all the counters and recreate gens.
                                 self.stop_all_tracked_notes()
+                                print (f"loop ended at {self.tick_counters[i]}")
                                 return True # report loop end
                             break # otherwise
                         if not dry_run:

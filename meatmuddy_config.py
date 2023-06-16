@@ -14,5 +14,5 @@ command_cc = {
 
 }
 
-command_method = "notes"
-#command_method = "cc"
+#command_method = "notes"
+command_method = "cc"
