@@ -233,7 +233,7 @@ class VisualizePlayInfoWaveshareOLED:
                # print("PARTIAL REFRESEH time:", execution_time, "seconds")
                # print(".")
                
-              # time.sleep(0.01)
+                time.sleep(0.1)
 
 def main():
     # Create an instance of VisualizePlayInfo
