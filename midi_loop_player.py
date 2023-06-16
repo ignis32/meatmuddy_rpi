@@ -54,10 +54,10 @@ class TimeSignature:
 
 class MidiLoop:
 
-    def __init__(self, input_port,output_port):
+    def __init__(self, output_port):
         self.time_signature = TimeSignature(4,4)
         self.output_port = output_port
-        self.input_port = input_port
+      #  self.input_port = input_port
         self.midi_file = None # mido object
         self.note_tracker = NoteTracker() # keep track of the notes so we can close them in the end of the loop
    
@@ -265,7 +265,7 @@ class MidiLoop:
 
                     self.tick_counters[i] += self.ticks_per_clock
                                         
-                    LOOKAHEAD_OFFSET= 0 # self.ticks_per_clock/2 # for a small lookahead for smoother play. 
+                    LOOKAHEAD_OFFSET= 2  #self.ticks_per_clock/3 # for a small lookahead for smoother play. 
                     # we process all message which are in the past or near ahead current clock.
                     # We do not use any internal timing, our sends are just immediate reaction to the incoming midi clock              
                     while self.tick_counters[i] >= self.current_msgs[i].time  - LOOKAHEAD_OFFSET:  

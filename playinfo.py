@@ -1,5 +1,5 @@
 import copy
-import threading
+import multiprocessing
 import time
 # UI drawing libs
 from PIL import Image,ImageDraw,ImageFont
@@ -14,8 +14,14 @@ import drivers.waveshare_oled.ST7789 as ST7789
 
 class PlayInfo:
     def __init__(self, file_name=None, beat_number=None, total_beat_numbers=None, bar_number=None, 
-                 total_bar_number=None, loop_type=None, prev_part_scheduled=False, next_part_scheduled=False, 
-                 fill_scheduled=False, startstop_scheduled=False):
+                 total_bar_number=None, prev_part_scheduled=False, next_part_scheduled=False, 
+                 fill_scheduled=False, startstop_scheduled=False, 
+                 song_part_number =0, total_song_part_numbers =0,
+
+                  fill_number=0,  total_fill_numbers=0, state="idle"
+
+                 
+                 ):
 
         self.file_name = file_name
 
@@ -25,18 +31,18 @@ class PlayInfo:
         self.bar_number = bar_number
         self.total_bar_number = total_bar_number
         
-        self.song_part_number  = 0
-        self.total_song_part_numbers = 0
+        self.song_part_number  = song_part_number
+        self.total_song_part_numbers = total_song_part_numbers
 
-        self.fill_number =0
-        self.total_fill_numbers =0
+        self.fill_number =fill_number
+        self.total_fill_numbers =fill_number
 
-        self.loop_type = loop_type
+ 
         self.prev_part_scheduled = prev_part_scheduled
         self.next_part_scheduled = next_part_scheduled
         self.fill_scheduled = fill_scheduled
         self.startstop_scheduled = startstop_scheduled
-        self.state  = "idle"
+        self.state  = state
 
     def get_flags_as_string(self):
         state_str = "["
@@ -65,7 +71,7 @@ class VisualizePlayInfo:
         if not self.prev_play_info == play_info:
             self.prev_play_info = copy.deepcopy(play_info)
             
-            self.render()
+          #  self.render()
      
     def get_filename_from_path(self,path):
         segments = str(path).split('/')
@@ -96,115 +102,7 @@ class VisualizePlayInfo:
         # state_str += "]"
         
         print(self.prev_play_info.get_flags_as_string())
-
-# class VisualizePlayInfoWaveshareEPaper:
-#     def __init__(self):
-#         self.prev_play_info = PlayInfo()
-       
-#         #logging.info("epd2in13_V3 Demo")
-#         # init screen
-#         self.epd = epd2in13_V3.EPD()
-#       #  logging.info("init and Clear")
-#         self.epd.init()
-#         self.epd.Clear(0xFF)
-
-#         # Drawing on the image
-#         font15 = ImageFont.truetype(  'Font.ttc' , 15)
-#         self.font24 = ImageFont.truetype(  'Font.ttc' , 24)
-        
-#         # # partial update
-#        # logging.info("4.show time...")
-#         time_image = Image.new('1', (self.epd.height, self.epd.width), 255)
-#         time_draw = ImageDraw.Draw(time_image)
-#        # time_draw.rectangle([(10, 50), (120, 200)], width=2)
-        
-        
-#         self.epd.displayPartBaseImage(self.epd.getbuffer(time_image))
-#         self.epd = self.epd
-#         self.time_image = time_image
-#         self.time_draw=time_draw
-
-
-#         self.update_required=True
-#         self.start_background_screen_updates()
-    
-
-#     def visualize(self, play_info):
-#         # draw visualization only if there is a change.
-#         if not self.prev_play_info == play_info:
-            
-#             self.render(old_data = self.prev_play_info, new_data = play_info)
-#             self.prev_play_info = copy.deepcopy(play_info)  
-#             self.update_required = True
-#            # print (self.prev_play_info.__dict__)
-     
-#     def get_filename_from_path(self,path):
-#         segments = str(path).split('/')
-#         filename = segments[-1]
-#         return filename
-
-    
-#     def render(self,old_data, new_data):
-#         # Define a mapping of loop types to their respective symbols
-        
-#         # Add the symbol to the filename
-#         # printx(f"Filename: ({self.prev_play_info.state}) {self.get_filename_from_path(self.prev_play_info.file_name)}")
-#         # print(f"Beats: {self.prev_play_info.beat_number}/{self.prev_play_info.total_beat_numbers}")
-#         # print(f"Bars: {self.prev_play_info.bar_number}/{self.prev_play_info.total_bar_number}")
-#         # print(f"Part: {self.prev_play_info.song_part_number +1}/{self.prev_play_info.total_song_part_numbers}")
-#         # print(f"Fill: {self.prev_play_info.fill_number+1}/{self.prev_play_info.total_fill_numbers}")
-        
-#         # # Create the string based on the boolean values
-
-#         #self.time_draw.rectangle((120, 80, 220, 105), fill = 255)
-
-#         start_time = time.process_time()
-#         self.time_draw.text((120, 80), f"{old_data.beat_number}/{old_data.total_beat_numbers}" , font = self.font24, fill = 255)
-#         self.time_draw.text((120, 80), f"{new_data.beat_number}/{new_data.total_beat_numbers}" , font = self.font24, fill = 0)
-
-
-#         self.time_draw.text((100, 20), f"{old_data.get_flags_as_string()}" , font = self.font24, fill = 255)
-#         self.time_draw.text((100, 20), f"{new_data.get_flags_as_string()}" , font = self.font24, fill = 0)
-
-
-#         end_time = time.process_time()
-#         execution_time = end_time - start_time
-#         print("  DRAW time:", execution_time, "seconds")
-
-#         # self.time_draw.rectangle((120, 80, 220, 105), fill = 255)
-#         # self.time_draw.text((120, 80), time.strftime('%H:%M:%S'), font = self.font24, fill = 0)
-       
-       
-#         #epd.displayPartial(epd.getbuffer(time_image.rotate(180)))
-#         #self.epd.display(self.time_draw)
-#        # self.epd.displayPartial(self.epd.getbuffer(self.time_image))
-
-#     def start_background_screen_updates(self):
-#         # Create a new thread and target the background_method
-#         bg_thread = threading.Thread(target=self.constant_background_render)
-#         bg_thread.daemon = True  # Set the thread as a daemon, so it exits when the main program ends
-#         bg_thread.start()  # Start the thread
-
-#     def constant_background_render(self):
-#         # while True:
-#         #     time.sleep(2)
-#         #     pass
-
-#         while True:
-#             if self.update_required:
-#                 start_time = time.process_time()
-#                 # self.epd.displayPartial(self.epd.getbuffer(self.time_image))
-#                 # self.update_required = False
-                  
-#                 self.update_required = False
-#                 self.epd.displayPartial(self.epd.getbuffer(self.time_image))
-
-#                 end_time = time.process_time()
-#                 execution_time = end_time - start_time
-#                 print("PARTIAL REFRESEH time:", execution_time, "seconds")
-#                 print(".")
-               
-#                 time.sleep(0.01)
+ 
 
 class VisualizePlayInfoWaveshareOLED:
     def __init__(self):
@@ -236,18 +134,26 @@ class VisualizePlayInfoWaveshareOLED:
        # self.draw.text((20, 20), f"TEST" , font = self.font24, fill = 255)
         self.disp.ShowImage(self.image,0,0)
         # launch a separate thread to draw stuff, to evade interfering with midi timings.
-        self.update_required=True
+        self.update_required = multiprocessing.Value('b', False)
+
+
+        self.manager = multiprocessing.Manager()
+        self.shared_playinfo_dict =  self.manager.dict()
+        self.shared_playinfo_dict['prev_play_info'] = PlayInfo().__dict__
+
+      
         self.start_background_screen_updates()
     
 
     def visualize(self, play_info):
         # draw visualization only if there is a change.
         if not self.prev_play_info == play_info:
-            
-            self.render(old_data = self.prev_play_info, new_data = play_info)
+            print(play_info.state)
             self.prev_play_info = copy.deepcopy(play_info)  
-            self.update_required = True
-           # print (self.prev_play_info.__dict__)
+            self.shared_playinfo_dict['prev_play_info'] = self.prev_play_info.__dict__  
+            self.shared_playinfo_dict['prev_play_info']['state']  = play_info.state
+            self.update_required.value = True
+            
      
     def get_filename_from_path(self,path):
         segments = str(path).split('/')
@@ -255,30 +161,29 @@ class VisualizePlayInfoWaveshareOLED:
         return filename
 
     
-    def render(self,old_data, new_data):
-       pass
-
-        
+ 
       
 
     def start_background_screen_updates(self):
-        # Create a new thread and target the background_method
-        bg_thread = threading.Thread(target=self.constant_background_render)
-        bg_thread.daemon = True  # Set the thread as a daemon, so it exits when the main program ends
-        bg_thread.start()  # Start the thread
-        print ("start_background_screen_updates")
-        time.sleep(2)
+        print("launch process")
+        bg_process = multiprocessing.Process(target=self.constant_background_render)
+        bg_process.start()
+        print("launched process")
 
     def constant_background_render(self):
  
         while True:
-         #   print(",")
-            if self.update_required:
+          #  print(",", end="")
+            if self.update_required.value:
+                
                 start_time = time.process_time()
 
-                self.update_required = False
+                self.update_required.value = False
                
-
+                play_info_dict = self.shared_playinfo_dict['prev_play_info']
+                #print (play_info_dict)
+                # Convert it back to a PlayInfo object
+                prev_play_info = PlayInfo(**play_info_dict)
                 print("RENDER")
                # generating ui 
                 line_number=0
@@ -287,14 +192,15 @@ class VisualizePlayInfoWaveshareOLED:
                 
                 
                 UI_text_lines = [ 
-                    f"{self.get_filename_from_path(self.prev_play_info.file_name)}",
-                    f"{self.prev_play_info.state }",            
-                    f"Beats: {self.prev_play_info.beat_number}/{self.prev_play_info.total_beat_numbers}",
-                    f"Fill: {self.prev_play_info.fill_number+1}/{self.prev_play_info.total_fill_numbers}",
-                    f"Part: {self.prev_play_info.song_part_number +1}/{self.prev_play_info.total_song_part_numbers}",
-                   # f"{self.prev_play_info.get_flags_as_string()}"
+                    f"{self.get_filename_from_path(prev_play_info.file_name)}",
+                    f"{prev_play_info.state }",            
+                    f"Beats: {prev_play_info.beat_number}/{prev_play_info.total_beat_numbers}",
+                    f"Fill: {prev_play_info.fill_number+1}/{prev_play_info.total_fill_numbers}",
+                    f"Part: {prev_play_info.song_part_number +1}/{prev_play_info.total_song_part_numbers}",
+                   # f"{prev_play_info.get_flags_as_string()}"
                 ]
                 
+                #print(UI_text_lines)
              
                 bg=  {
                         "idle": "WHITE",
@@ -307,14 +213,14 @@ class VisualizePlayInfoWaveshareOLED:
 
                
 
-                background_color = bg[self.prev_play_info.state]
+                background_color = bg[prev_play_info.state]
                 self.image = Image.new("RGB", (self.disp.width, self.disp.height), background_color)
                 self.draw = ImageDraw.Draw(self.image)
                 for line_text in UI_text_lines:
                     self.draw.text( (20, (line_number*(line_height + line_spacing))), line_text , font = self.font24, fill = "black")
                     line_number+=1
                 
-                self.draw.text( (20, (line_number*(line_height + line_spacing))), f"{self.prev_play_info.get_flags_as_string()}" , font =  self.font36, fill = "black")
+                self.draw.text( (20, (line_number*(line_height + line_spacing))), f"{prev_play_info.get_flags_as_string()}" , font =  self.font36, fill = "black")
                    
                 
 
@@ -327,7 +233,7 @@ class VisualizePlayInfoWaveshareOLED:
                # print("PARTIAL REFRESEH time:", execution_time, "seconds")
                # print(".")
                
-                time.sleep(0.20)
+              # time.sleep(0.01)
 
 def main():
     # Create an instance of VisualizePlayInfo

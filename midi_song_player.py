@@ -12,6 +12,27 @@ from playinfo import VisualizePlayInfoWaveshareOLED as VisualizePlayInfoWaveshar
 from meatmuddy_config import command_notes as command_notes
 from meatmuddy_config import command_cc as command_cc
 from meatmuddy_config import command_method as command_method
+import threading
+from queue import Queue
+midi_queue = Queue()
+
+def read_midi_input():
+    with mido.open_input('f_midi') as midi_input:
+        for msg in midi_input:
+            # Put the MIDI message into the queue
+            midi_queue.put(msg)
+
+# def process_midi_messages():
+#     while True:
+#         # Get the MIDI message from the queue (blocks if the queue is empty)
+#         msg = midi_queue.get()
+
+#         # Process the MIDI message
+#         # Your processing code here...
+
+#         # Mark the MIDI message as processed
+#         midi_queue.task_done()
+
 
 
 #load config
@@ -146,7 +167,7 @@ class MidiSong:
     def c_it_is_fill_time(self):
         if len(self.get_current_part().fills):
            # print(f"filltime   {self.get_current_part().ticks_left_to_end }   {self.get_current_part().fills[self.fill_index].loop_length_in_ticks}")
-            return self.get_current_part().ticks_left_to_end  <= self.get_current_part().fills[self.fill_index].loop_length_in_ticks
+            return self.get_current_part().ticks_left_to_end  < self.get_current_part().fills[self.fill_index].loop_length_in_ticks
         else:
             return False  # it's never time to play fill if there are no fills.
 
@@ -156,7 +177,7 @@ class MidiSong:
         self.flag=SongFlags()   # command flags grouped in one place
         self.setup_state_machine()      # main hub for setting logic between states
         self.play_info = PlayInfo()     # set of data for UI extracted from loops and other places.
-      #  self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
+       # self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
     
         self.viz = VisualizePlayInfoWaveshareOLED()  # realtime printouts of that info.  #TBA support for waveshare displays. 
         # midi ports 
@@ -175,6 +196,7 @@ class MidiSong:
         # place to store input cc/notes for controlling drum machine
         self.input_commands_queue =  []
         self.load_song()   
+        print("Finished loading")
 
     def load_song(self):  #tba some error handling?
         
@@ -191,7 +213,7 @@ class MidiSong:
         if file is None:
             return None
         else:
-            midi_loop = MidiLoop(self.input_port, self.output_port)
+            midi_loop = MidiLoop(  self.output_port)
             midi_loop.load_file(file)
         return midi_loop
 
@@ -277,13 +299,24 @@ class MidiSong:
         while True:
             start_time = time.process_time()
             
+            # input_midi_messages =  [ ]
+            # while not midi_queue.empty():
+            #      input_midi_messages.append(midi_queue.get())
+            #      midi_queue.task_done()
+                
+            # input_midi_messages = []
+  
+            # if   not midi_queue.empty():
+            #     input_midi_messages.append(midi_queue.get())
+            #     midi_queue.task_done()
             input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
-            # if len(input_midi_messages) == 0:
-            #     time.sleep (0.01) # give viz thread to breathe
+      
+
             self.extract_command_messages(input_midi_messages)
             self.process_commands()
  
             if self.state == "idle" :
+                midi_queue.queue.clear()
                 pass
 
             elif self.state == "playing_intro" :
@@ -328,7 +361,8 @@ class MidiSong:
             
             end_time = time.process_time()
             execution_time = end_time - start_time
-            print(execution_time*1000)
+           # time.sleep(0.005)
+           # print(execution_time*1000)
 
             
 
@@ -341,6 +375,10 @@ input_port = mido.open_input(input_port_name)
 
 song_path="songs_lib/grm_retrofunk_song.json"
 #song_path="songs_lib/grm_dnb152.json"
+
+# midi_thread = threading.Thread(target=read_midi_input)
+# midi_thread.start()
+
 
 with open(song_path, "r") as file:
     song_json = file.read()

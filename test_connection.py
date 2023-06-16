@@ -12,6 +12,14 @@ clock_message_type = "clock"
 # Create MIDI input and output objects
 input_port = mido.open_input(input_port_name)
 
+def sleep_milliseconds(milliseconds):
+    start_time = time.perf_counter()
+    desired_duration = milliseconds / 1000  # Convert milliseconds to seconds
+
+    while time.perf_counter() - start_time < desired_duration:
+        pass
+
+
 
 def process_midi():
     global input_midi
@@ -38,7 +46,7 @@ def process_midi():
         else:
             print()
             print(message)
-    time.sleep(0.018)
+    sleep_milliseconds(20)
 # Process MIDI messages and do other tasks
 while True:
     process_midi()
