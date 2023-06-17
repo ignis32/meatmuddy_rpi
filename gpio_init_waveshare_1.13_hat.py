@@ -53,8 +53,4 @@ draw = ImageDraw.Draw(image)
 draw.rectangle((0,0,width,height), outline=0, fill=0)
 disp.ShowImage(image,0,0)
 
-FONT_PATH = 'Font.ttc'  # replace with path to your preferred .ttf file
-FONT_SIZE = 24  # adjust this as needed
-SONGS_PER_PAGE = 6
-SONG_LIST_START = 0
-RUNNING_TEXT_SPEED = 0.1  # Speed of running text. Less = fasster
+
