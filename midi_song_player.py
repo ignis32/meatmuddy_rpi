@@ -351,8 +351,7 @@ class MidiSong:
             execution_time = end_time - start_time
 
             if not GPIO.input(KEY3_PIN):
-                self.viz.bg_process.terminate()
-                self.viz.bg_process.join()
+                self.viz.stop_background_screen_updates() # vital to stop dedicated display process correctly
                 return
             
            # time.sleep(0.005)

@@ -138,13 +138,10 @@ class VisualizePlayInfoWaveshareOLED:
         # stuff shared with a separate process
         # launch a separate thread to draw stuff, to evade interfering with midi timings.
         self.update_required = multiprocessing.Value('b', True)
-      #  self.update_required = multiprocessing.Value('b', False)
 
         self.manager = multiprocessing.Manager()
         self.shared_playinfo_dict =  self.manager.dict()
-        self.shared_playinfo_dict['prev_play_info'] = PlayInfo().__dict__
-
-      
+        self.shared_playinfo_dict['prev_play_info'] = PlayInfo().__dict__ 
         self.start_background_screen_updates()
     
 
@@ -153,109 +150,73 @@ class VisualizePlayInfoWaveshareOLED:
         if not self.prev_play_info == play_info:
             print(play_info.state)
             self.prev_play_info = copy.deepcopy(play_info)  
+            # share data with display update process
             self.shared_playinfo_dict['prev_play_info'] = self.prev_play_info.__dict__  
-            self.shared_playinfo_dict['prev_play_info']['state']  = play_info.state
-            self.update_required.value = True
-            
-     
+            self.update_required.value = True  # let know the second process it's time to display new data
+          
     def get_filename_from_path(self,path):
         segments = str(path).split('/')
         filename = segments[-1]
         return filename
 
-    
- 
-      
-
-    def start_background_screen_updates(self):
-        print("launch process")
+    def start_background_screen_updates(self):  # launch display updates as a seprate process to let midi part work better
+        print("launch background process")
         self.bg_process = multiprocessing.Process(target=self.constant_background_render)
         self.bg_process.start()
-        print("launched process")
+        print("launched background process")
+
+    # vital to stop dedicated display process correctly, otherwise brace for zombie (processes) apocalypse
+    def stop_background_screen_updates(self):
+            self.bg_process.terminate()
+            self.bg_process.join()
+            self.manager.shutdown()
 
     def constant_background_render(self):
  
         while True:
-          #  print(",", end="")
             if self.update_required.value:
-                
-              #  start_time = time.process_time()
-
-                self.update_required.value = False
-               
+                self.update_required.value = False  # we say that  we handled this update.
+                # extract information from the shared memory dict
                 play_info_dict = self.shared_playinfo_dict['prev_play_info']
-                #print (play_info_dict)
-                # Convert it back to a PlayInfo object
+                # Convert it back to a PlayInfo object    
                 prev_play_info = PlayInfo(**play_info_dict)
                 print("RENDER")
-               # generating ui 
-                line_number=0
+               
+                # generating ui                
                 line_height = 30
                 line_spacing = 4
-                
-                
+                    
                 UI_text_lines = [ 
                     f"{self.get_filename_from_path(prev_play_info.file_name)}",
                     f"{prev_play_info.state }",            
                     f"Beats: {prev_play_info.beat_number}/{prev_play_info.total_beat_numbers}",
                     f"Fill: {prev_play_info.fill_number+1}/{prev_play_info.total_fill_numbers}",
                     f"Part: {prev_play_info.song_part_number +1}/{prev_play_info.total_song_part_numbers}",
-                   # f"{prev_play_info.get_flags_as_string()}"
                 ]
-                
-                #print(UI_text_lines)
              
-                bg=  {
+                bg_colors_map=  {
                         "idle": "WHITE",
                         "playing_intro":"lavender",
                         "playing_outro":"lightsalmon",
                         "playing_groove":"lightgreen" ,
-                        "playing_fill":"palegoldenrod"
-                        
+                        "playing_fill":"palegoldenrod"                   
                 }
 
-               
-
-                background_color = bg[prev_play_info.state]
+                # draw text 
+                background_color = bg_colors_map[prev_play_info.state]
                 self.image = Image.new("RGB", (self.disp.width, self.disp.height), background_color)
                 self.draw = ImageDraw.Draw(self.image)
+
+                line_number=0
                 for line_text in UI_text_lines:
                     self.draw.text( (20, (line_number*(line_height + line_spacing))), line_text , font = self.font24, fill = "black")
                     line_number+=1
-                
-                self.draw.text( (20, (line_number*(line_height + line_spacing))), f"{prev_play_info.get_flags_as_string()}" , font =  self.font36, fill = "black")
-                   
-                
-
-
-
-                self.disp.ShowImage(self.image ,0,0)
-
-             #  end_time = time.process_time()
-               # execution_time = end_time - start_time
-               # print("PARTIAL REFRESH time:", execution_time, "seconds")
-               # print(".")
                
-                time.sleep(0.1)
+                # draw flags separately with a bigger font
+                self.draw.text( (20, (line_number*(line_height + line_spacing))), f"{prev_play_info.get_flags_as_string()}" , font =  self.font36, fill = "black")
+                
+                # send image to display
+                self.disp.ShowImage(self.image ,0,0)
+                time.sleep(0.1) ## give main midi process to breath
 
-# def main():
-#     # Create an instance of VisualizePlayInfo
-#     visualize_play_info = VisualizePlayInfo()
-
-#     # Create a PlayInfo instance and visualize it
-#     play_info_1 = PlayInfo("song1.mid", 3, 4, 1, 4, "intro")
-#     visualize_play_info.visualize(play_info_1)
-
-#     # Change some fields in the PlayInfo instance and visualize it again
-#     play_info_1.beat_number = 4
-#     play_info_1.fill_scheduled = True
-#     visualize_play_info.visualize(play_info_1)
-
-#     # Create another PlayInfo instance and visualize it
-#     play_info_2 = PlayInfo("song2.mid", 2, 4, 1, 4, "groove")
-#     play_info_2.prev_part_scheduled = True
-#     play_info_2.next_part_scheduled = True
-#     visualize_play_info.visualize(play_info_2)
-
-# if __name__ == "__main__":
-#     main()
+ 
