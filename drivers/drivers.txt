@@ -1,0 +1,2 @@
+waveshare_epd  -  waveshare e-paper drivers. Not yet supported and maybe never.
+waveshare_oled -  screen used in 1.13 waveshare pi oled hat

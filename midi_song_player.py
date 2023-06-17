@@ -12,15 +12,16 @@ from playinfo import VisualizePlayInfoWaveshareOLED as VisualizePlayInfoWaveshar
 from meatmuddy_config import command_notes as command_notes
 from meatmuddy_config import command_cc as command_cc
 from meatmuddy_config import command_method as command_method
-import threading
-from queue import Queue
-midi_queue = Queue()
 
-def read_midi_input():
-    with mido.open_input('f_midi') as midi_input:
-        for msg in midi_input:
-            # Put the MIDI message into the queue
-            midi_queue.put(msg)
+#import threading
+#from queue import Queue
+#midi_queue = Queue()
+
+# def read_midi_input():
+#     with mido.open_input('f_midi') as midi_input:
+#         for msg in midi_input:
+#             # Put the MIDI message into the queue
+#             midi_queue.put(msg)
 
 # def process_midi_messages():
 #     while True:
@@ -365,23 +366,25 @@ class MidiSong:
            # print(execution_time*1000)
 
             
+def main():
+    # init  midi ports.
+    input_port_name = "f_midi"
+    output_port_name = "f_midi"
 
-# init  midi ports.
-input_port_name = "f_midi"
-output_port_name = "f_midi"
+    output_port = mido.open_output(output_port_name)
+    input_port = mido.open_input(input_port_name)
 
-output_port = mido.open_output(output_port_name)
-input_port = mido.open_input(input_port_name)
+    song_path="songs_lib/grm_retrofunk_song.json"
+    #song_path="songs_lib/grm_dnb152.json"
 
-song_path="songs_lib/grm_retrofunk_song.json"
-#song_path="songs_lib/grm_dnb152.json"
+    # midi_thread = threading.Thread(target=read_midi_input)
+    # midi_thread.start()
 
-# midi_thread = threading.Thread(target=read_midi_input)
-# midi_thread.start()
+    with open(song_path, "r") as file:
+        song_json = file.read()
 
+    song = MidiSong(input_port, output_port, song_json)
+    song.play()
 
-with open(song_path, "r") as file:
-    song_json = file.read()
-
-song = MidiSong(input_port, output_port, song_json)
-song.play()
+if __name__ == "__main__":
+    main()
