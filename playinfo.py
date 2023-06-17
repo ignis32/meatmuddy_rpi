@@ -133,9 +133,12 @@ class VisualizePlayInfoWaveshareOLED:
         self.draw = ImageDraw.Draw(self.image)
        # self.draw.text((20, 20), f"TEST" , font = self.font24, fill = 255)
         self.disp.ShowImage(self.image,0,0)
+       
+       
+        # stuff shared with a separate process
         # launch a separate thread to draw stuff, to evade interfering with midi timings.
-        self.update_required = multiprocessing.Value('b', False)
-
+        self.update_required = multiprocessing.Value('b', True)
+      #  self.update_required = multiprocessing.Value('b', False)
 
         self.manager = multiprocessing.Manager()
         self.shared_playinfo_dict =  self.manager.dict()
@@ -166,8 +169,8 @@ class VisualizePlayInfoWaveshareOLED:
 
     def start_background_screen_updates(self):
         print("launch process")
-        bg_process = multiprocessing.Process(target=self.constant_background_render)
-        bg_process.start()
+        self.bg_process = multiprocessing.Process(target=self.constant_background_render)
+        self.bg_process.start()
         print("launched process")
 
     def constant_background_render(self):
@@ -176,7 +179,7 @@ class VisualizePlayInfoWaveshareOLED:
           #  print(",", end="")
             if self.update_required.value:
                 
-                start_time = time.process_time()
+              #  start_time = time.process_time()
 
                 self.update_required.value = False
                
@@ -228,31 +231,31 @@ class VisualizePlayInfoWaveshareOLED:
 
                 self.disp.ShowImage(self.image ,0,0)
 
-                end_time = time.process_time()
-                execution_time = end_time - start_time
-               # print("PARTIAL REFRESEH time:", execution_time, "seconds")
+             #  end_time = time.process_time()
+               # execution_time = end_time - start_time
+               # print("PARTIAL REFRESH time:", execution_time, "seconds")
                # print(".")
                
                 time.sleep(0.1)
 
-def main():
-    # Create an instance of VisualizePlayInfo
-    visualize_play_info = VisualizePlayInfo()
+# def main():
+#     # Create an instance of VisualizePlayInfo
+#     visualize_play_info = VisualizePlayInfo()
 
-    # Create a PlayInfo instance and visualize it
-    play_info_1 = PlayInfo("song1.mid", 3, 4, 1, 4, "intro")
-    visualize_play_info.visualize(play_info_1)
+#     # Create a PlayInfo instance and visualize it
+#     play_info_1 = PlayInfo("song1.mid", 3, 4, 1, 4, "intro")
+#     visualize_play_info.visualize(play_info_1)
 
-    # Change some fields in the PlayInfo instance and visualize it again
-    play_info_1.beat_number = 4
-    play_info_1.fill_scheduled = True
-    visualize_play_info.visualize(play_info_1)
+#     # Change some fields in the PlayInfo instance and visualize it again
+#     play_info_1.beat_number = 4
+#     play_info_1.fill_scheduled = True
+#     visualize_play_info.visualize(play_info_1)
 
-    # Create another PlayInfo instance and visualize it
-    play_info_2 = PlayInfo("song2.mid", 2, 4, 1, 4, "groove")
-    play_info_2.prev_part_scheduled = True
-    play_info_2.next_part_scheduled = True
-    visualize_play_info.visualize(play_info_2)
+#     # Create another PlayInfo instance and visualize it
+#     play_info_2 = PlayInfo("song2.mid", 2, 4, 1, 4, "groove")
+#     play_info_2.prev_part_scheduled = True
+#     play_info_2.next_part_scheduled = True
+#     visualize_play_info.visualize(play_info_2)
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

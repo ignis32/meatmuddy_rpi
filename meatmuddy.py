@@ -1,66 +1,37 @@
 import os
 import json
 import time
-import RPi.GPIO as GPIO
-from PIL import Image, ImageDraw, ImageFont
-import spidev as SPI
-import drivers.waveshare_oled.ST7789 as ST7789
 
-#GPIO define
-RST_PIN        = 25
-CS_PIN         = 8
-DC_PIN         = 24
 
-KEY_UP_PIN     = 6 
-KEY_DOWN_PIN   = 19
-KEY_LEFT_PIN   = 5
-KEY_RIGHT_PIN  = 26
-KEY_PRESS_PIN  = 13
 
-KEY1_PIN       = 21
-KEY2_PIN       = 20
-KEY3_PIN       = 16
 
-RST = 27
-DC = 25
-BL = 24
-bus = 0 
-device = 0 
+import mido
 
-# 240x240 display with hardware SPI:
-disp = ST7789.ST7789(SPI.SpiDev(bus, device),RST, DC, BL)
-disp.Init()
+from midi_song_player import MidiSong
 
-# Clear display.
-disp.clear()
+# config file   
+from meatmuddy_config import command_notes as command_notes
+from meatmuddy_config import command_cc as command_cc
+from meatmuddy_config import command_method as command_method
 
-#init GPIO
-GPIO.setmode(GPIO.BCM) 
-GPIO.setup(KEY_UP_PIN,      GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-GPIO.setup(KEY_DOWN_PIN,    GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-GPIO.setup(KEY_LEFT_PIN,    GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(KEY_RIGHT_PIN,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(KEY_PRESS_PIN,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(KEY1_PIN,        GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-GPIO.setup(KEY2_PIN,        GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(KEY3_PIN,        GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#load config
+def get_swap_dict(d):
+    return {v: k for k, v in d.items()}
 
-width = 240
-height = 240
-image = Image.new('RGB', (width, height))
+notes_command = get_swap_dict(command_notes)
+cc_command = get_swap_dict(command_cc)
 
-# Get drawing object to draw on image.
-draw = ImageDraw.Draw(image)
 
-# Draw a black filled box to clear the image.
-draw.rectangle((0,0,width,height), outline=0, fill=0)
-disp.ShowImage(image,0,0)
 
-FONT_PATH = 'Font.ttc'  # replace with path to your preferred .ttf file
-FONT_SIZE = 24  # adjust this as needed
-SONGS_PER_PAGE = 6
-SONG_LIST_START = 0
-RUNNING_TEXT_SPEED = 1  # Speed of running text
+# Read the contents of the script file
+with open('gpio_init_waveshare_1.13_hat.py', 'r') as file:
+    script_contents = file.read()
+
+# Execute the script
+exec(script_contents)
+
+
+
 
 # Load the songs from the song lib
 def songs_lib():
@@ -71,12 +42,27 @@ def songs_lib():
     json_files = [os.path.splitext(file)[0] for file in content if file.endswith('.json')]
     return json_files
 
+
+
+class SongInfo:
+
+    def __init__(self, filename):
+        with open(filename, 'r') as file:
+            data = json.load(file)
+        
+        self.name = data.get('name')
+        self.tempo = data.get('tempo')
+        self.time_signature = data.get('time_signature')
+        self.midi_channel = data.get('midi_channel')
+
 class Song:
     def __init__(self, name, position):
         self.name = name
         self.position = position
         self.start_pos = 0
         self.last_update = time.time()
+        self.song_info = SongInfo(f"songs_lib/{name}.json")
+        self.song_file_path =  f"songs_lib/{name}.json" 
 
     def draw(self, draw, font, relative_position, selected=False):
         text_x, text_y = 10, 10 + relative_position*20
@@ -118,22 +104,76 @@ class Menu:
         for song in self.songs:
             song.update(draw, font)
 
+    def print_song_info(self):
+        print(f"{self.songs[self.position].song_info.name}")
+        print(f"Tempo: {self.songs[self.position].song_info.tempo}")
+        print(f"Sig: {self.songs[self.position].song_info.time_signature}")
+    
+     
+    
+    def draw_song_info(self, draw,font, start_x, start_y):
+        song_name = self.songs[self.position].song_info.name
+        tempo = self.songs[self.position].song_info.tempo
+        time_signature = self.songs[self.position].song_info.time_signature
+
+        # Clear the bottom section of the display.
+        draw.rectangle((start_x, start_y, width, height), outline=0, fill=0)
+        draw.rectangle((start_x-4, start_y-4, width-1, height-1), outline="lightgreen" )
+
+
+        # Display the song information at the specified position on the screen.
+        text = f"{song_name}"
+        draw.text((start_x, start_y), text, font=font, fill='lightblue')
+
+        text = f"Tempo: {tempo}"
+        draw.text((start_x, start_y + FONT_SIZE+4), text, font=font, fill='pink')
+
+        text = f"Time Sig : {time_signature}"
+        draw.text((start_x, start_y + (FONT_SIZE+4)*2), text, font=font, fill='yellow')
+
+       # disp.ShowImage(image, 0, 0)
+    
+        #print(self.songs[self.position].song_info.__dict__)
     def handle_keypress(self, key):
         if key == 'up':
             self.position = max(0, self.position - 1)
             print("Up")
+            self.print_song_info()
         elif key == 'down':
             self.position = min(len(self.songs) - 1, self.position + 1)
             print("Down")
+            self.print_song_info()
         elif key == "right":
             self.position = min(len(self.songs) - SONGS_PER_PAGE, self.position + SONGS_PER_PAGE)  # Page down  
-            print("Right")    
+            print("Right")   
+            self.print_song_info() 
         elif key == "left":
             self.position = max(0, self.position - SONGS_PER_PAGE)  # Page up
             print("Left")
+            self.print_song_info()
         elif key == 'key_1':  # Add this condition for key 1
             song = self.songs[self.position]
-            print("Current song:", song.name)
+            print("opening Current song:", song.name)
+            self.play_song()
+   
+    def play_song(self):
+        input_port_name = "f_midi"
+        output_port_name = "f_midi"
+
+        output_port = mido.open_output(output_port_name)
+        input_port = mido.open_input(input_port_name)
+
+        song_path= self.songs[self.position].song_file_path
+        #song_path="songs_lib/grm_dnb152.json"
+
+        # midi_thread = threading.Thread(target=read_midi_input)
+        # midi_thread.start()
+
+        with open(song_path, "r") as file:
+            song_json = file.read()
+
+            song = MidiSong(input_port, output_port, song_json)
+            song.play()
 
 def main():
     font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
@@ -156,8 +196,8 @@ def main():
         
 
         menu.draw(draw, font)
-        menu.update(draw, font)
-
+        menu.update(draw, font) #something for running line
+        menu.draw_song_info(draw, font,10,140)
         disp.ShowImage(image, 0, 0)
 
 try:

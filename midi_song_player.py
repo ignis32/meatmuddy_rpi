@@ -13,29 +13,14 @@ from meatmuddy_config import command_notes as command_notes
 from meatmuddy_config import command_cc as command_cc
 from meatmuddy_config import command_method as command_method
 
-#import threading
-#from queue import Queue
-#midi_queue = Queue()
+# Read the contents of the script file
+with open('gpio_init_waveshare_1.13_hat.py', 'r') as file:
+    script_contents = file.read()
 
-# def read_midi_input():
-#     with mido.open_input('f_midi') as midi_input:
-#         for msg in midi_input:
-#             # Put the MIDI message into the queue
-#             midi_queue.put(msg)
+# Execute the script
+exec(script_contents)
 
-# def process_midi_messages():
-#     while True:
-#         # Get the MIDI message from the queue (blocks if the queue is empty)
-#         msg = midi_queue.get()
-
-#         # Process the MIDI message
-#         # Your processing code here...
-
-#         # Mark the MIDI message as processed
-#         midi_queue.task_done()
-
-
-
+ 
 #load config
 def get_swap_dict(d):
     return {v: k for k, v in d.items()}
@@ -177,11 +162,8 @@ class MidiSong:
 
         self.flag=SongFlags()   # command flags grouped in one place
         self.setup_state_machine()      # main hub for setting logic between states
-        self.play_info = PlayInfo()     # set of data for UI extracted from loops and other places.
-       # self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
-    
-        self.viz = VisualizePlayInfoWaveshareOLED()  # realtime printouts of that info.  #TBA support for waveshare displays. 
-        # midi ports 
+       
+          # midi ports 
         self.input_port = input_port    
         self.output_port = output_port
 
@@ -196,10 +178,15 @@ class MidiSong:
         
         # place to store input cc/notes for controlling drum machine
         self.input_commands_queue =  []
-        self.load_song()   
+        self.load_song(song_json)   
+        self.play_info = PlayInfo(        )     # set of data for UI extracted from loops and other places.
+        # self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
+    
+        self.viz = VisualizePlayInfoWaveshareOLED()  # realtime printouts of that info.  #TBA support for waveshare displays. 
+   
         print("Finished loading")
 
-    def load_song(self):  #tba some error handling?
+    def load_song(self,song_json):  #tba some error handling?
         
         self.song_data = json.loads(song_json)
         self.intro = self.create_midi_loop(self.song_data["intro"]["groove"])
@@ -317,7 +304,7 @@ class MidiSong:
             self.process_commands()
  
             if self.state == "idle" :
-                midi_queue.queue.clear()
+               # midi_queue.queue.clear()
                 pass
 
             elif self.state == "playing_intro" :
@@ -362,6 +349,12 @@ class MidiSong:
             
             end_time = time.process_time()
             execution_time = end_time - start_time
+
+            if not GPIO.input(KEY3_PIN):
+                self.viz.bg_process.terminate()
+                self.viz.bg_process.join()
+                return
+            
            # time.sleep(0.005)
            # print(execution_time*1000)
 
