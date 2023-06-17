@@ -92,6 +92,7 @@ class MidiLoop:
         # communication with midi song
         self.loop_length_in_ticks =0
         self.ticks_left_to_end = None
+       
          
          
     def stop_all_tracked_notes(self):
@@ -252,15 +253,15 @@ class MidiLoop:
     
     def play(self, input_messages, dry_run=False):  # Returns True if loop finished. False, if still playing.
       
-        clock_messages_count=0
-        for msg in input_messages:
-          if msg.type == 'clock':
-            clock_messages_count += 1
+        # clock_messages_count=0
+        # for msg in input_messages:
+        #   if msg.type == 'clock':
+        #     clock_messages_count += 1
 
-        if clock_messages_count > 1:
-                print (input_messages)
-                print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
-       
+        # if clock_messages_count > 1:
+        #         print (input_messages)
+        #         print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
+                
         # iterate all incoming midi stuff in input  buffer
         for msg in input_messages: 
             if msg.type == 'clock':

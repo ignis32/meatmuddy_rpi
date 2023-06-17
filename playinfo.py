@@ -18,9 +18,9 @@ class PlayInfo:
                  fill_scheduled=False, startstop_scheduled=False, 
                  song_part_number =0, total_song_part_numbers =0,
 
-                  fill_number=0,  total_fill_numbers=0, state="idle"
-
-                 
+                  fill_number=0,  total_fill_numbers=0, state="idle",
+                   CLOCKRUNS=0
+                   
                  ):
 
         self.file_name = file_name
@@ -43,6 +43,8 @@ class PlayInfo:
         self.fill_scheduled = fill_scheduled
         self.startstop_scheduled = startstop_scheduled
         self.state  = state
+
+        self.CLOCKRUNS=CLOCKRUNS
 
     def get_flags_as_string(self):
         state_str = "["
@@ -220,7 +222,8 @@ class VisualizePlayInfoWaveshareOLED:
                 for line_text in UI_text_lines:
                     self.draw.text( (20, (line_number*(line_height + line_spacing))), line_text , font = self.font24, fill = "black")
                     line_number+=1
-               
+
+                self.draw.text( (122, (5*(line_height + line_spacing))), f"{prev_play_info.CLOCKRUNS}" , font = self.font24, fill = "red")
                 # draw flags separately with a bigger font
                 self.draw.text( (20, (line_number*(line_height + line_spacing))), f"{prev_play_info.get_flags_as_string()}" , font =  self.font36, fill = "black")
                 

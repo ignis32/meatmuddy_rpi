@@ -295,7 +295,15 @@ class MidiSong:
          
         while True:
             input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
-      
+
+
+            clock_messages_count=0
+            for msg in input_midi_messages:
+                if msg.type == 'clock':
+                      clock_messages_count += 1
+            if clock_messages_count > 1:
+                    print(f"!!!!  There are more than one message with type 'clock' {clock_messages_count} in port. We are failing to keep up")
+                    self.play_info.CLOCKRUNS += clock_messages_count-1
 
             self.extract_command_messages(input_midi_messages)
             self.process_commands()

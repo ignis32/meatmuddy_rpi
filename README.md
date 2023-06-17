@@ -44,3 +44,30 @@ pip install -r requirements.txt
 pip install python-rtmidi  # takes time.
 
 
+
+
+# clean unused services
+
+sudo systemctl disable bluetooth
+sudo systemctl stop bluetooth
+
+sudo systemctl disable hciuart
+sudo systemctl stop hciuart
+
+sudo systemctl disable hciuart.service
+sudo systemctl stop hciuart.service
+sudo systemctl disable bluealsa.service
+sudo systemctl stop bluealsa.service
+sudo systemctl disable bluetooth.service
+sudo systemctl stop bluetooth.service
+
+sudo systemctl disable triggerhappy
+sudo  systemctl stop triggerhappy 
+
+sudo systemctl disable  systemd-timesyncd
+sudo systemctl stop    systemd-timesyncd
+
+systemctl disable ModemManager.service
+systemctl stop ModemManager.service
+# Disable Bluetooth
+dtoverlay=disable-bt

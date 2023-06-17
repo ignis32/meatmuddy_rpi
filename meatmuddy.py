@@ -163,6 +163,7 @@ class Menu:
             song.play()
 
 def main():
+    os.nice(-10)
     font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
     menu = Menu()
 
