@@ -2,35 +2,22 @@ import os
 import json
 import time
 
-
-
-
 import mido
-
 from midi_song_player import MidiSong
-
-# config file   
-from meatmuddy_config import command_notes as command_notes
-from meatmuddy_config import command_cc as command_cc
-from meatmuddy_config import command_method as command_method
-
-#load config
-def get_swap_dict(d):
-    return {v: k for k, v in d.items()}
-
-notes_command = get_swap_dict(command_notes)
-cc_command = get_swap_dict(command_cc)
+# Menu UI paprams
+FONT_PATH = 'Font.ttc'  # replace with path to your preferred .ttf file
+FONT_SIZE = 24  # adjust this as needed
+SONGS_PER_PAGE = 6
+SONG_LIST_START = 0
+RUNNING_TEXT_SPEED = 0.1  # Speed of running text. Less = fasster
 
 
 
-# Read the contents of the script file
+# Some GPIO display/keypad init bolierplate.
 with open('gpio_init_waveshare_1.13_hat.py', 'r') as file:
     script_contents = file.read()
-
 # Execute the script
 exec(script_contents)
-
-
 
 
 # Load the songs from the song lib
@@ -41,8 +28,6 @@ def songs_lib():
     content = os.listdir('songs_lib')
     json_files = [os.path.splitext(file)[0] for file in content if file.endswith('.json')]
     return json_files
-
-
 
 class SongInfo:
 
@@ -55,7 +40,8 @@ class SongInfo:
         self.time_signature = data.get('time_signature')
         self.midi_channel = data.get('midi_channel')
 
-class Song:
+class SongMenuItem:
+
     def __init__(self, name, position):
         self.name = name
         self.position = position
@@ -63,7 +49,8 @@ class Song:
         self.last_update = time.time()
         self.song_info = SongInfo(f"songs_lib/{name}.json")
         self.song_file_path =  f"songs_lib/{name}.json" 
-
+    
+    # menu item draws itself knowing it's position.
     def draw(self, draw, font, relative_position, selected=False):
         text_x, text_y = 10, 10 + relative_position*20
         draw.text((text_x - self.start_pos, text_y), self.name, font=font, fill='white')
@@ -86,7 +73,7 @@ class Song:
 
 class Menu:
     def __init__(self):
-        self.songs = [Song(name, i) for i, name in enumerate(songs_lib())]
+        self.songs = [SongMenuItem(name, i) for i, name in enumerate(songs_lib())]
         self.position = 0
 
     def draw(self, draw, font):
