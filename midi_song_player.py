@@ -230,7 +230,16 @@ class MidiSong:
 
             elif command ==  "startstop" :    
                 print("command start/stop received")
-                self.flag.startstop = True
+                if self.flag.startstop == True:      #TBA move to state machine as something like "superstop flag or whatever"
+                    self.get_current_part().rewind()       
+                    self.get_current_part_fill().rewind()  
+                    self.to_idle() ### hardstop on double stop button.
+                    self.clean_flags()
+                    self.reset_indexes()
+                    
+                     
+                else:
+                    self.flag.startstop = True
             else:
                 print("unknown command")
     
@@ -285,18 +294,6 @@ class MidiSong:
     def play(self):
          
         while True:
-            start_time = time.process_time()
-            
-            # input_midi_messages =  [ ]
-            # while not midi_queue.empty():
-            #      input_midi_messages.append(midi_queue.get())
-            #      midi_queue.task_done()
-                
-            # input_midi_messages = []
-  
-            # if   not midi_queue.empty():
-            #     input_midi_messages.append(midi_queue.get())
-            #     midi_queue.task_done()
             input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
       
 
@@ -347,15 +344,10 @@ class MidiSong:
             self.viz.visualize(self.get_play_info())
             self.sm_loop()
             
-            end_time = time.process_time()
-            execution_time = end_time - start_time
 
             if not GPIO.input(KEY3_PIN):
                 self.viz.stop_background_screen_updates() # vital to stop dedicated display process correctly
                 return
-            
-           # time.sleep(0.005)
-           # print(execution_time*1000)
 
             
 def main():

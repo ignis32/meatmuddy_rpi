@@ -6,13 +6,22 @@ import os
  
 
 # decorator for function execution time measurement 
+# def measure_execution_time(func):
+#     def wrapper(*args, **kwargs):
+#         start_time = time.time()
+#         result = func(*args, **kwargs)
+#         end_time = time.time()
+#         execution_time = end_time - start_time
+#         print(f"{func.__name__} execution time: {execution_time*1000} milliseconds")
+#         return result
+#     return wrapper
 def measure_execution_time(func):
     def wrapper(*args, **kwargs):
-        start_time = time.time()
+        start_time = time.perf_counter()
         result = func(*args, **kwargs)
-        end_time = time.time()
+        end_time = time.perf_counter()
         execution_time = end_time - start_time
-        print(f"{func.__name__} execution time: {execution_time/1000} milliseconds")
+        print(f"{func.__name__} execution time: {execution_time*1000} milliseconds")
         return result
     return wrapper
 
@@ -182,17 +191,22 @@ class MidiLoop:
         self.print_meta_messages()
         print("beats map:")
         print( self.get_beats_absolute_time_ticks())
+
+        # Replace the midi_gens list of iterators with a list of tracks.
+        self.midi_tracks = [list(track) for track in self.midi_file.tracks]
+        # Replace the current_msgs list of messages with a list of indices.
+        self.current_msg_indices = [0 for _ in self.midi_tracks]
+
         self.rewind() # reset iterators and time counters.
    
    # @measure_execution_time
     def rewind(self):
 
-        self.midi_gens = [iter(track) for track in self.midi_file.tracks]
-        self.current_msgs = [next(gen) for gen in self.midi_gens]  # load first messages
-        self.tick_counters = [ 0 for _ in self.midi_gens] # Each track has it's own relative (to previous note) time counter.
+        self.tick_counters = [0 for _ in self.midi_tracks] # Each track has it's own relative (to previous note) time counter.
         self.abs_tick_counter = 0  # 
-        self.num_tracks_ended = [False for _ in self.midi_gens ] # all tracks are playing   # Keep track of the number of tracks that have ended
-    
+        self.num_tracks_ended = [False for _ in self.midi_tracks] # all tracks are playing   # Keep track of the number of tracks that have ended
+        self.current_msg_indices = [0 for _ in self.midi_tracks]  # reset indices
+
     
     def send_msg (self,msg):
 
@@ -246,10 +260,6 @@ class MidiLoop:
         if clock_messages_count > 1:
                 print (input_messages)
                 print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
-             #   print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
-             #   print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
-               # print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
-            
        
         # iterate all incoming midi stuff in input  buffer
         for msg in input_messages: 
@@ -259,7 +269,7 @@ class MidiLoop:
                 self.ticks_left_to_end = self.loop_length_in_ticks - self.abs_tick_counter
                 self.print_beat_number()
 
-                for i in range(len(self.midi_gens)):  # iterate tracks
+                for i in range(len(self.midi_tracks)):  # iterate tracks
                     if self.num_tracks_ended[i]:  # do not process this track if we are done with it
                         continue
 
@@ -267,25 +277,31 @@ class MidiLoop:
                                         
                     LOOKAHEAD_OFFSET= 2  #self.ticks_per_clock/3 # for a small lookahead for smoother play. 
                     # we process all message which are in the past or near ahead current clock.
-                    # We do not use any internal timing, our sends are just immediate reaction to the incoming midi clock              
-                    while self.tick_counters[i] >= self.current_msgs[i].time  - LOOKAHEAD_OFFSET:  
-                        if self.current_msgs[i].type == 'end_of_track':
-                            print(f"end of track {i} on {self.abs_tick_counter }")
+                    # We do not use any internal timing, our sends are just immediate reaction to the incoming midi clock  
+                    # 
+                    #
+
+                    #initial message 
+                    current_msg = self.midi_tracks[i][self.current_msg_indices[i]]           
+                    while self.tick_counters[i] >= current_msg.time  - LOOKAHEAD_OFFSET:  
+                        if current_msg.type == 'end_of_track':
+                           # print(f"end of track {i} on {self.abs_tick_counter }")
                             self.num_tracks_ended[i] = True
                             if all(self.num_tracks_ended):  ### if all tracks stopped, its a loop end
-                                self.rewind()  # reset all the counters and recreate gens.
+                                self.rewind()  # reset all the counters.
                                 self.stop_all_tracked_notes()
-                                print (f"loop ended at {self.tick_counters[i]}")
+                               # print (f"loop ended at {self.tick_counters[i]}")
                                 return True # report loop end
                             break # otherwise
                         if not dry_run:
-                            self.send_msg(self.current_msgs[i])
-                        # we are not zeroing time counters, because most probably we are not exactly on the
-                        # time for this note, only near.
-                        self.tick_counters[i] -= self.current_msgs[i].time   
-                        self.current_msgs[i] = next(self.midi_gens[i])            
-                           
-        return False  
+                            self.send_msg(current_msg)
+                        self.tick_counters[i] -= current_msg.time   
+                        # Increment the current message index for this track.
+                        self.current_msg_indices[i] += 1
+                        # Get the next message for this track.
+                        current_msg = self.midi_tracks[i][self.current_msg_indices[i]]  
+
+                return False 
 
 # def main():
     

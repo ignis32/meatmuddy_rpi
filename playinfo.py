@@ -6,7 +6,7 @@ from PIL import Image,ImageDraw,ImageFont
 #Waveshare oled stuff
 import spidev as SPI
 import drivers.waveshare_oled.ST7789 as ST7789  
- 
+import os
 #waveshare epaper stuff  # not working yet
 
 #from waveshare_epd import epd2in13_V3
@@ -172,7 +172,16 @@ class VisualizePlayInfoWaveshareOLED:
             self.manager.shutdown()
 
     def constant_background_render(self):
- 
+
+        # Combination of these params are responsible for ratio  of the computing power
+        # distribution between display background updater and main midi handling app.
+
+        # these two are empirically  tuned on my raspberry.
+        # 5 / 0.05 works nice with midi but display updates feel laggy
+        BACKGROUND_NICE_PRIORITY   =   5   #process priority. Higher the number, the lower is priority.
+        BACKGROUND_SLEEP_TIME = 0.01       #how long to sleep between cycles.
+
+        os.nice(5)
         while True:
             if self.update_required.value:
                 self.update_required.value = False  # we say that  we handled this update.
@@ -217,6 +226,6 @@ class VisualizePlayInfoWaveshareOLED:
                 
                 # send image to display
                 self.disp.ShowImage(self.image ,0,0)
-                time.sleep(0.1) ## give main midi process to breath
+                time.sleep(BACKGROUND_SLEEP_TIME) ## give main midi process to breath
 
  
