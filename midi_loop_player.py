@@ -2,8 +2,10 @@ import mido
 from mido import MidiFile
 import math
 import time
-import os
+#import os
  
+
+# debug decorator to print time spent inside the function
 def measure_execution_time(func):
     def wrapper(*args, **kwargs):
         start_time = time.perf_counter()
@@ -14,7 +16,10 @@ def measure_execution_time(func):
         return result
     return wrapper
 
+
+# this class is required to track all running notes to finish them during the loop stop, if loop is interrupted in the middle.
 class NoteTracker:
+
     def __init__(self):
         self.currently_playing_notes = {}
 
@@ -49,13 +54,12 @@ class TimeSignature:
         self.numerator = numerator
         self.denominator = denominator
 
-
 class MidiLoop:
 
     def __init__(self, output_port):
         self.time_signature = TimeSignature(4,4)
         self.output_port = output_port
-      #  self.input_port = input_port
+      #  self.input_port = input_port  # we do not handle input in midiloop anymore, midi input is handled in MidiSong
         self.midi_file = None # mido object
         self.note_tracker = NoteTracker() # keep track of the notes so we can close them in the end of the loop
    
@@ -63,12 +67,12 @@ class MidiLoop:
         self.midi_gens = []   
         self.current_msgs = [] 
         self.tick_counters = []
-        
-        self.num_tracks_ended = []   # keep track of the ended track, to end loop when all tracks are done. Pun non intended.
+            
+        self.num_tracks_ended = []   # Remember the ended tracks, to end loop when all tracks are done.  
         
         # per loop stuff
         self.current_beat_number = 0
-        self.abs_tick_counter = 0
+        self.abs_tick_counter = 0    # absolute time in ticks since play start
 
         # loop information
         self.ticks_per_quarter_note = None
@@ -81,8 +85,6 @@ class MidiLoop:
         # communication with midi song
         self.loop_length_in_ticks =0
         self.ticks_left_to_end = None
-       
-         
          
     def stop_all_tracked_notes(self):
         notes_off = self.note_tracker.get_all_notes_off()
@@ -104,17 +106,9 @@ class MidiLoop:
         print(f"detected quarter_notes_per_bar { self.quarter_notes_per_bar}")    
        
 
-    def verify_length(self):   # it appears to me that it always should pass the verification, as soon as we fix drum loop length according to clocks anyway.
-                               # but I'll keep that for a while
-
-        if  not self.loop_length_in_ticks % self.ticks_per_clock == 0:
-            print(f"!!!!!!!!! MIDI loop does not fit midi clock evenly with a remaning {self.loop_length_in_ticks % 24} ticks")
-        else:
-            print(f"MIDI loop fits midi clock evenly into clocksks.")
-            
-    def fix_eot_to_bar(self):   # quantize end of track to full bar length.
-        
-                                                        
+    # quantize end of track to full bar length.  Most midi loops come with EndOfTrack just after last noteoff, 
+    # and EOT is not aligned with intended end of the track at bar end. We fix it on our own to really know when loop should end.
+    def fix_eot_to_bar(self):                                                           
         bar_length_ticks = self.quarter_notes_per_bar * self.ticks_per_quarter_note
 
         # find the last note_off event across all tracks
@@ -126,7 +120,7 @@ class MidiLoop:
             for msg in track:
                 track_time += msg.time  # MIDO uses relative time, so we sum it up
  
-                if msg.type == 'note_off' or (msg.type == 'note_on'): # and msg.velocity == 0): # any note will do
+                if msg.type == 'note_off' or (msg.type == 'note_on'): # # any note will do as a last.
                     if track_time > last_note_off_time:
                         last_note_off_time = track_time
                         longest_track_index = i
@@ -176,7 +170,6 @@ class MidiLoop:
 
         self.detect_quarter_notes_per_bar()
         self.fix_eot_to_bar()   # auto extend end-of-track to end of bar.
-        self.verify_length()
         
         self.print_meta_messages()
         print("beats map:")
@@ -196,6 +189,7 @@ class MidiLoop:
         self.abs_tick_counter = 0  # 
         self.num_tracks_ended = [False for _ in self.midi_tracks] # all tracks are playing   # Keep track of the number of tracks that have ended
         self.current_msg_indices = [0 for _ in self.midi_tracks]  # reset indices
+        self.ticks_left_to_end = self.loop_length_in_ticks 
 
     
     def send_msg (self,msg):
@@ -206,6 +200,8 @@ class MidiLoop:
                             self.note_tracker.process_msg(msg)
                             self.output_port.send(msg)
 
+
+    # create a list of absolute time markers of the start of each denominator based beat
     def get_beats_absolute_time_ticks(self):
         
         #quarter_notes_per_bar = self.detect_quarter_notes_per_bar()  # Assuming 4/4 time signature
@@ -216,15 +212,14 @@ class MidiLoop:
 
         absolute_times = []
         current_time = 0
-                        #<=  includes end, < does not
+                        #<=  includes end, < does not 
         while current_time <  self.loop_length_in_ticks:
             absolute_times.append(current_time)
-
-            
-            current_time += ticks_per_denominator_beat # * ( self.time_signature.numerator / self.time_signature.denominator)
+            current_time += ticks_per_denominator_beat 
         self.beats_absolute_time_ticks = absolute_times
         return absolute_times
-             
+    
+    #calculate  in which denominator based beat we are since the start of the loop
     def calc_beat_number(self):
         ranges = self.beats_absolute_time_ticks
         for i, range_num in enumerate(ranges):
@@ -233,31 +228,23 @@ class MidiLoop:
        # If the input number is greater than the last range, return the index of the last range
         return len(ranges)   
     
-    def print_beat_number(self):
+    def set_beat_number(self):
         beat_number = self.calc_beat_number()
         if  not self.current_beat_number == beat_number:
             self.current_beat_number = beat_number
           #  print (f"abs tick: {self.abs_tick_counter}  ticks left: {self.loop_length_in_ticks - self.abs_tick_counter} real beat: { beat_number} / {len(self.beats_absolute_time_ticks)}  denominator {self.time_signature.denominator}th file: {os.path.basename(self.file_name)}") 
-
-    
-    def play(self, input_messages, dry_run=False):  # Returns True if loop finished. False, if still playing.
-      
-        # clock_messages_count=0
-        # for msg in input_messages:
-        #   if msg.type == 'clock':
-        #     clock_messages_count += 1
-
-        # if clock_messages_count > 1:
-        #         print (input_messages)
-        #         print(f"!!!!!!!!!!!! There are more than one message with type 'clock' {clock_messages_count} in the list. We are failing to keep up")
-                
-        # iterate all incoming midi stuff in input  buffer
+  
+    # process all incoming midi clocks,  increment time and play notes of the loop accordingly.
+    # return True if loop finished. False, if still playing.
+    def play(self, input_messages, dry_run=False):  
+        
+        # iterate all incoming midi stuff in input buffer
         for msg in input_messages: 
             if msg.type == 'clock':
                  
                 self.abs_tick_counter  += self.ticks_per_clock   #absolute time is same for all tracks.
                 self.ticks_left_to_end = self.loop_length_in_ticks - self.abs_tick_counter
-                self.print_beat_number()
+                self.set_beat_number()
 
                 for i in range(len(self.midi_tracks)):  # iterate tracks
                     if self.num_tracks_ended[i]:  # do not process this track if we are done with it
@@ -265,12 +252,10 @@ class MidiLoop:
 
                     self.tick_counters[i] += self.ticks_per_clock
                                         
-                    LOOKAHEAD_OFFSET= 2  #self.ticks_per_clock/3 # for a small lookahead for smoother play. 
+                    LOOKAHEAD_OFFSET= 2  #self.ticks_per_clock/3 # for a small lookahead for smoother play.  #TBA do i really need that croutch
                     # we process all message which are in the past or near ahead current clock.
                     # We do not use any internal timing, our sends are just immediate reaction to the incoming midi clock  
-                    # 
-                    #
-
+                    
                     #initial message 
                     current_msg = self.midi_tracks[i][self.current_msg_indices[i]]           
                     while self.tick_counters[i] >= current_msg.time  - LOOKAHEAD_OFFSET:  
@@ -293,29 +278,4 @@ class MidiLoop:
 
                 return False 
 
-# def main():
-    
-#     # init  midi ports.
-#     input_port_name = 'f_midi'
-#     output_port_name = 'f_midi'
-
-#     output_port = mido.open_output(output_port_name)
-#     input_port = mido.open_input(input_port_name)
-
-#     player = MidiLoop(  input_port, output_port)
-
-#     path="file.mid"
-#     player.load_file(path)
-
-#     while True:   
-#         input_messages =  list(input_port.iter_pending() )
-#         still_playing = player.play(input_messages)
-#         if not still_playing:
-#             print("RELOAD")
-            
-            
-    
-#     # Close the ports when finished
-#     print("closinge ports")
-#     output_port.close()
-#     input_port.close()
+ 
