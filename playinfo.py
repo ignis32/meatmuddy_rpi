@@ -7,10 +7,10 @@ from PIL import Image,ImageDraw,ImageFont
 import spidev as SPI
 import drivers.waveshare_oled.ST7789 as ST7789  
 import os
-#waveshare epaper stuff  # not working yet
 
-#from waveshare_epd import epd2in13_V3
- 
+
+import RateLimiter
+
 
 class PlayInfo:
     def __init__(self, file_name=None, beat_number=None, total_beat_numbers=None, bar_number=None, 
@@ -184,7 +184,10 @@ class VisualizePlayInfoWaveshareOLED:
         BACKGROUND_SLEEP_TIME = 0.01       #how long to sleep between cycles.
 
         os.nice(5)
+
+        rate_limiter=RateLimiter.RateLimiter(interval=0.1, function_name ="display")
         while True:
+            rate_limiter.start_cycle()
             if self.update_required.value:
                 self.update_required.value = False  # we say that  we handled this update.
                 # extract information from the shared memory dict
@@ -229,6 +232,7 @@ class VisualizePlayInfoWaveshareOLED:
                 
                 # send image to display
                 self.disp.ShowImage(self.image ,0,0)
-                time.sleep(BACKGROUND_SLEEP_TIME) ## give main midi process to breath
+
+                rate_limiter.end_cycle() ## give main midi process to breath
 
  

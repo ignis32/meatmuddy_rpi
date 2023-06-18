@@ -4,17 +4,6 @@ import math
 import time
 import os
  
-
-# decorator for function execution time measurement 
-# def measure_execution_time(func):
-#     def wrapper(*args, **kwargs):
-#         start_time = time.time()
-#         result = func(*args, **kwargs)
-#         end_time = time.time()
-#         execution_time = end_time - start_time
-#         print(f"{func.__name__} execution time: {execution_time*1000} milliseconds")
-#         return result
-#     return wrapper
 def measure_execution_time(func):
     def wrapper(*args, **kwargs):
         start_time = time.perf_counter()

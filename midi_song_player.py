@@ -13,6 +13,8 @@ from meatmuddy_config import command_notes as command_notes
 from meatmuddy_config import command_cc as command_cc
 from meatmuddy_config import command_method as command_method
 
+import RateLimiter  
+
 # Read the contents of the script file
 with open('gpio_init_waveshare_1.13_hat.py', 'r') as file:
     script_contents = file.read()
@@ -292,8 +294,15 @@ class MidiSong:
     
     
     def play(self):
-         
+
+
+        # makes sure that we run endless cycle not faster than interval
+        rate_limiter=RateLimiter.RateLimiter(interval=0.007, function_name ="song_play")
+ 
+
         while True:
+            rate_limiter.start_cycle()
+          
             input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
 
 
@@ -356,7 +365,8 @@ class MidiSong:
             if not GPIO.input(KEY3_PIN):
                 self.viz.stop_background_screen_updates() # vital to stop dedicated display process correctly
                 return
-
+            
+            rate_limiter.end_cycle()  # introduces controllable delay.  
             
 def main():
     # init  midi ports.
@@ -368,9 +378,6 @@ def main():
 
     song_path="songs_lib/grm_retrofunk_song.json"
     #song_path="songs_lib/grm_dnb152.json"
-
-    # midi_thread = threading.Thread(target=read_midi_input)
-    # midi_thread.start()
 
     with open(song_path, "r") as file:
         song_json = file.read()
