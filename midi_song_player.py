@@ -185,7 +185,7 @@ class MidiSong:
         # self.viz = VisualizePlayInfo()  # realtime printouts of that info.  #TBA support for waveshare displays. 
     
         self.viz = VisualizePlayInfoWaveshareOLED()  # realtime printouts of that info.  #TBA support for waveshare displays. 
-   
+        self.remaining_unprocessed_clocks =0 
         print("Finished loading")
 
     def load_song(self,song_json):  #tba some error handling?
@@ -297,55 +297,68 @@ class MidiSong:
 
 
         # makes sure that we run endless cycle not faster than interval
-        rate_limiter=RateLimiter.RateLimiter(interval=0.007, function_name ="song_play")
+        rate_limiter=RateLimiter.RateLimiter(interval=0.007, function_name ="song_play", mute=True)
  
 
         while True:
             rate_limiter.start_cycle()
           
-            input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
+            raw_input_midi_messages = list(self.input_port.iter_pending()) # getting list of input message  got from midi port since the last loop. 
+            # get list of clock messages
+            clock_messages_amount =  sum(1 for msg in raw_input_midi_messages if msg.type == 'clock')
+             
 
+            # if previous loop had been interrupted when there were unprocessed clocks, we need to compensate that by processing these clocks.
+            if not self.remaining_unprocessed_clocks == 0:
+                print (f"COMPENSATING!!!!!!!!!!!!!!!!!!*********!    {self.remaining_unprocessed_clocks}")
+                clock_messages_amount += self.remaining_unprocessed_clocks
+                self.remaining_unprocessed_clocks = 0 
 
-            clock_messages_count=0
-            for msg in input_midi_messages:
-                if msg.type == 'clock':
-                      clock_messages_count += 1
-            if clock_messages_count > 1:
-                    print(f"!!!!  There are more than one message with type 'clock' {clock_messages_count} in port. We are failing to keep up")
-                    self.play_info.CLOCKRUNS += clock_messages_count-1
+            if clock_messages_amount > 1:
+                    print(f"!!!!  There are more than one message with type 'clock' {clock_messages_amount} in port. We are failing to keep up")
+                    self.play_info.CLOCKRUNS += clock_messages_amount-1
 
-            self.extract_command_messages(input_midi_messages)
+            self.extract_command_messages(raw_input_midi_messages)
             self.process_commands()
  
             if self.state == "idle" :
-               # midi_queue.queue.clear()
                 pass
 
             elif self.state == "playing_intro" :
-               self.flag_end_of_midi_loop = self.intro.play(input_midi_messages)
+               self.flag_end_of_midi_loop = self.intro.play(clock_messages_amount)
+               self.remaining_unprocessed_clocks = self.intro.remaining_unprocessed_clocks
+               self.intro.remaining_unprocessed_clocks = 0
+
                self.extract_viz_data_from_loop(self.intro)
 
             elif self.state == "playing_groove":
-                self.flag_end_of_midi_loop = self.get_current_part().play(input_midi_messages)
+                self.flag_end_of_midi_loop = self.get_current_part().play(clock_messages_amount)
+                self.remaining_unprocessed_clocks = self.get_current_part().remaining_unprocessed_clocks
+                self.get_current_part().remaining_unprocessed_clocks = 0
+
+
                 self.extract_viz_data_from_loop(self.get_current_part())
 
                 # to cover a case when user requests fill later then it was actually best to start,  we play fill silently in parallel.
                 # this way, when we actualy trigger playing fill, it already would be in sync with main groove, and can be played as a drop in replacement
-               # print(".")
                 if self.c_it_is_fill_time():
-                    self.get_current_part_fill().play(input_midi_messages, dry_run = True) 
-
+                    self.get_current_part_fill().play(clock_messages_amount, dry_run = True) 
+                    
                 if self.flag_end_of_midi_loop:  # handling rewind separatly due to no guarantee that both loops would end in the same time
                     self.get_current_part().rewind()        #TBA check rewind  time precision
                     self.get_current_part_fill().rewind()              
         
             elif self.state == "playing_fill":
                
-               self.get_current_part_fill().play(input_midi_messages)
+               self.get_current_part_fill().play(clock_messages_amount)
 
                # calculate ending by the playing main groove silently.
                # Less resource effective but more realible for keeping timing strict, to my guess.
-               self.flag_end_of_midi_loop = self.get_current_part().play(input_midi_messages, dry_run= True) 
+               self.flag_end_of_midi_loop = self.get_current_part().play(clock_messages_amount, dry_run= True) 
+               self.remaining_unprocessed_clocks = self.get_current_part().remaining_unprocessed_clocks
+               self.get_current_part().remaining_unprocessed_clocks = 0
+
+
                self.extract_viz_data_from_loop(self.get_current_part_fill())
                
                if self.flag_end_of_midi_loop:  #handling rewind separatly due to no guarantee that both loops would end in the same time
@@ -353,7 +366,11 @@ class MidiSong:
                    self.get_current_part_fill().rewind()
 
             elif self.state ==  "playing_outro":
-               self.flag_end_of_midi_loop = self.outro.play(input_midi_messages)
+               self.flag_end_of_midi_loop = self.outro.play(clock_messages_amount)
+               self.remaining_unprocessed_clocks = self.outro.remaining_unprocessed_clocks
+               self.outro.remaining_unprocessed_clocks = 0
+
+
                self.extract_viz_data_from_loop(self.outro)
             else:
                 raise ValueError(f"unknown state {self.state} quitting.")

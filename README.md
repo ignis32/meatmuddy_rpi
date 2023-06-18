@@ -16,7 +16,8 @@ dtoverlay=dwc2
 
 
 ```
-dwc2,g_midi
+dwc2
+g_midi
 ```
 
 # add current user to audio group to allow access to midi ports:
@@ -71,3 +72,17 @@ systemctl disable ModemManager.service
 systemctl stop ModemManager.service
 # Disable Bluetooth
 dtoverlay=disable-bt
+
+
+
+##-- enable gpio stuff
+
+
+sudo su
+raspi-config nonint do_i2c 0
+raspi-config nonint do_spi 0
+
+# wiringpi is deprecated by author, but waveshare drivers require it.
+cd /tmp
+wget https://github.com/WiringPi/WiringPi/releases/download/2.61-1/wiringpi-2.61-1-armhf.deb
+sudo dpkg -i wiringpi-2.61-1-armhf.deb

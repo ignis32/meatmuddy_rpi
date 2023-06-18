@@ -185,7 +185,7 @@ class VisualizePlayInfoWaveshareOLED:
 
         os.nice(5)
 
-        rate_limiter=RateLimiter.RateLimiter(interval=0.1, function_name ="display")
+        rate_limiter=RateLimiter.RateLimiter(interval=0.1, function_name ="display", mute=True)
         while True:
             rate_limiter.start_cycle()
             if self.update_required.value:
