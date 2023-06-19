@@ -287,10 +287,11 @@ class MidiSong:
 
 
         self.play_info.total_song_part_numbers = len(self.song_parts)  #TBA i should not get this info on each loop.
-        try:
-            self.play_info.total_fill_numbers = len( loop.fills)   #TBA i should not get this info on each loop.
-        except:
-            self.play_info.total_fill_numbers = "x"
+
+        # try:
+        #     self.play_info.total_fill_numbers = len( loop.fills)   #TBA i should not get this info on each loop.
+        # except:
+        #     self.play_info.total_fill_numbers = "x"
     
     
     def play(self):
@@ -322,6 +323,7 @@ class MidiSong:
             self.process_commands()
  
             if self.state == "idle" :
+                self.play_info.total_fill_numbers = "x"
                 pass
 
             elif self.state == "playing_intro" :
@@ -330,6 +332,7 @@ class MidiSong:
                self.intro.remaining_unprocessed_clocks = 0
 
                self.extract_viz_data_from_loop(self.intro)
+               self.play_info.total_fill_numbers = "x"
 
             elif self.state == "playing_groove":
                 self.flag_end_of_midi_loop = self.get_current_part().play(clock_messages_amount)
@@ -338,6 +341,7 @@ class MidiSong:
 
 
                 self.extract_viz_data_from_loop(self.get_current_part())
+                self.play_info.total_fill_numbers = len( self.get_current_part().fills)
 
                 # to cover a case when user requests fill later then it was actually best to start,  we play fill silently in parallel.
                 # this way, when we actualy trigger playing fill, it already would be in sync with main groove, and can be played as a drop in replacement
@@ -361,6 +365,7 @@ class MidiSong:
 
                self.extract_viz_data_from_loop(self.get_current_part_fill())
                
+               
                if self.flag_end_of_midi_loop:  #handling rewind separatly due to no guarantee that both loops would end in the same time
                    self.get_current_part().rewind()        #TBA check rewind  time precision
                    self.get_current_part_fill().rewind()
@@ -372,6 +377,8 @@ class MidiSong:
 
 
                self.extract_viz_data_from_loop(self.outro)
+               self.play_info.total_fill_numbers = "x"
+
             else:
                 raise ValueError(f"unknown state {self.state} quitting.")
                 exit()

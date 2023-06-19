@@ -35,7 +35,7 @@ class PlayInfo:
         self.total_song_part_numbers = total_song_part_numbers
 
         self.fill_number =fill_number
-        self.total_fill_numbers =fill_number
+        self.total_fill_numbers =total_fill_numbers
 
  
         self.prev_part_scheduled = prev_part_scheduled

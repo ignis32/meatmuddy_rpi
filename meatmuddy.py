@@ -155,12 +155,15 @@ class Menu:
 
         # midi_thread = threading.Thread(target=read_midi_input)
         # midi_thread.start()
+        try:
+            with open(song_path, "r") as file:
+                song_json = file.read()
 
-        with open(song_path, "r") as file:
-            song_json = file.read()
-
-            song = MidiSong(input_port, output_port, song_json)
-            song.play()
+                song = MidiSong(input_port, output_port, song_json)
+                song.play()
+        except Exception as e:
+            print(e)
+            pass
 
 def main():
     os.nice(-10)
