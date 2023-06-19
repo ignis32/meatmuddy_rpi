@@ -231,7 +231,7 @@ class MidiLoop:
 
         # iterate all incoming midi stuff in input buffer
         for clock in range(clock_messages_amount):
-                print(".")
+               # print(".")
                  
                 self.abs_tick_counter  += self.ticks_per_clock   #absolute time is same for all tracks.
                 self.ticks_left_to_end = self.loop_length_in_ticks - self.abs_tick_counter
@@ -270,7 +270,7 @@ class MidiLoop:
                         self.current_msg_indices[i] += 1
                         # Get the next message for this track.
                         current_msg = self.midi_tracks[i][self.current_msg_indices[i]]  
-                print("*")
+              #  print("*")
         return False 
 
  

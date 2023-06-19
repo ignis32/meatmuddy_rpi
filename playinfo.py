@@ -2,7 +2,7 @@ import copy
 import multiprocessing
 import time
 # UI drawing libs
-from PIL import Image,ImageDraw,ImageFont
+from PIL import Image,ImageDraw,ImageFont,ImageEnhance
 #Waveshare oled stuff
 import spidev as SPI
 import drivers.waveshare_oled.ST7789 as ST7789  
@@ -175,6 +175,30 @@ class VisualizePlayInfoWaveshareOLED:
 
     def constant_background_render(self):
 
+        def darken_section(img, beats, current_beat):
+            if current_beat is None:
+                current_beat = 1
+            if beats is None:
+                beats = 1
+            width, height = img.size
+            section_width = width // beats
+
+            # Compute the rectangle for the current beat
+            left = (current_beat-1) * section_width
+            right = left + section_width
+            rectangle_coords = (left, 0, right, height)
+
+            # Cut the rectangle part of the image
+            cropped = img.crop(rectangle_coords)
+
+            # Use ImageEnhance to decrease the brightness
+            enhancer = ImageEnhance.Brightness(cropped)
+            darker_cropped = enhancer.enhance(0.6)  # 0.7 means 70% of the original brightness
+
+            # Paste the darkened image back
+            img.paste(darker_cropped, rectangle_coords)
+            
+
         # Combination of these params are responsible for ratio  of the computing power
         # distribution between display background updater and main midi handling app.
 
@@ -230,6 +254,9 @@ class VisualizePlayInfoWaveshareOLED:
                 # draw flags separately with a bigger font
                 self.draw.text( (20, (line_number*(line_height + line_spacing))), f"{prev_play_info.get_flags_as_string()}" , font =  self.font36, fill = "black")
                 
+
+                darken_section(self.image,  prev_play_info.total_beat_numbers,prev_play_info.beat_number  )
+
                 # send image to display
                 self.disp.ShowImage(self.image ,0,0)
 
