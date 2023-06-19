@@ -1,0 +1,30 @@
+{
+    "name": "groove monkey retrofunk",
+    "tempo": 120,
+    "time_signature": "4/4",
+    "midi_channel": 10,
+    "intro": {
+      "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Intro/Slow-Mid Intro Fill 07.mid"
+    },
+    "outro": {
+      "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Fills/096 Lowdown Fill 11.mid"
+    },
+    "song_parts": [
+      {
+        "name": "verse",
+        "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Grooves/096 Lowdown A.mid",
+        "fills": [
+          "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Fills/096 Lowdown Fill 02.mid",
+          "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Fills/096 Lowdown Fill 03.mid"
+        ]       },
+      {
+        "name": "chorus",
+        "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Grooves/096 Lowdown Ride A.mid",
+        "fills": [
+          "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Fills/096 Lowdown Ride Fill 07.mid",
+          "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Fills/096 Lowdown Ride Fill 08.mid"
+        ]       }
+       
+    ]
+  }
+  

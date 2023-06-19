@@ -1,0 +1,34 @@
+  {
+      "name": "dnb_song",
+      "tempo": 152,
+      "time_signature": "4/4",
+      "midi_channel": 10,
+      "intro": {
+        "groove": "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Hat Fill 1.mid"
+      },
+      "song_parts": [
+        {
+          "name": "verse",
+          "groove": "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Groove 2.mid",
+          "fills": [
+            "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Hat Fill 2.mid",
+            "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Hat Fill 3.mid"
+          ]    },
+        {
+          "name": "chorus",
+          "groove": "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Groove 3.mid",
+          "fills": [
+            "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Ride Fill 1.mid",
+            "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Ride Fill 2.mid"
+          ]      },
+        {
+          "name": "bridge",
+          "groove": "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Groove 4.mid",
+          "fills": [
+            "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Ride Fill 4.mid"
+          ]    }
+      ],
+      "outro": {
+        "groove": "midi_lib/groove_monkee/groove_monkey_separate/groove_monkee_152_DnB/152 DnB/152 DnB Ride.mid"
+      }
+    }
