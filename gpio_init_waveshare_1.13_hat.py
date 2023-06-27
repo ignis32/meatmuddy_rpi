@@ -1,4 +1,7 @@
 
+# boilerplate to work with waveshare oled hat. Used in multiple places.
+
+
 import spidev as SPI
 import drivers.waveshare_oled.ST7789 as ST7789
 import RPi.GPIO as GPIO

@@ -1,8 +1,10 @@
 import os
 import json
 import time
-
+import subprocess
 import mido
+import netifaces
+import socket
 from midi_song_player import MidiSong
 # Menu UI paprams
 FONT_PATH = 'Font.ttc'  # replace with path to your preferred .ttf file
@@ -19,6 +21,19 @@ with open('gpio_init_waveshare_1.13_hat.py', 'r') as file:
 # Execute the script
 exec(script_contents)
 
+
+def get_ip_addresses():
+    ip_dict = {}
+    for interface in netifaces.interfaces():
+        ifaddresses = netifaces.ifaddresses(interface)
+        inet_addr = ifaddresses.get(netifaces.AF_INET)
+        if inet_addr:
+            ip_dict[interface] = inet_addr[0]['addr']
+    return ip_dict
+
+def get_hostname():
+    return  socket.gethostname()
+    
 
 # Load the songs from the song lib
 def songs_lib():
@@ -76,6 +91,22 @@ class Menu:
         self.songs = [SongMenuItem(name, i) for i, name in enumerate(songs_lib())]
         self.position = 0
 
+        self.webui_process = None
+        self.is_webui_running = False
+    def draw_webui(self,draw,font):
+        draw.rectangle((0, 0, width, height), outline=0, fill=0)
+        draw.text((20, 20), 'WEBUI', font=font, fill='white')
+        
+        ip_addresses = get_ip_addresses()
+        y_pos = 40
+        for interface, ip in ip_addresses.items():
+            draw.text((0, y_pos), f"{interface} {ip}", font=font, fill='white')
+            y_pos += 20
+        
+        draw.text((0, y_pos), f"{get_hostname()}.local", font=font, fill='lightgreen')
+        y_pos+=20
+        y_pos+=20
+        draw.text((10, y_pos), f"Press key 3 to stop", font=font, fill='white')
     def draw(self, draw, font):
         draw.rectangle((0,0,width,height), outline=0, fill=0)
 
@@ -122,26 +153,41 @@ class Menu:
     
         #print(self.songs[self.position].song_info.__dict__)
     def handle_keypress(self, key):
-        if key == 'up':
-            self.position = max(0, self.position - 1)
-            print("Up")
-            self.print_song_info()
-        elif key == 'down':
-            self.position = min(len(self.songs) - 1, self.position + 1)
-            print("Down")
-            self.print_song_info()
-        elif key == "right":
-            self.position = min(len(self.songs) - SONGS_PER_PAGE, self.position + SONGS_PER_PAGE)  # Page down  
-            print("Right")   
-            self.print_song_info() 
-        elif key == "left":
-            self.position = max(0, self.position - SONGS_PER_PAGE)  # Page up
-            print("Left")
-            self.print_song_info()
-        elif key == 'key_1':  # Add this condition for key 1
-            song = self.songs[self.position]
-            print("opening Current song:", song.name)
-            self.play_song()
+        
+        if not self.is_webui_running:
+         
+            
+            if key == 'up':
+                self.position = max(0, self.position - 1)
+                print("Up")
+                self.print_song_info()
+            elif key == 'down':
+                self.position = min(len(self.songs) - 1, self.position + 1)
+                print("Down")
+                self.print_song_info()
+            elif key == "right":
+                self.position = min(len(self.songs) - SONGS_PER_PAGE, self.position + SONGS_PER_PAGE)  # Page down  
+                print("Right")   
+                self.print_song_info() 
+            elif key == "left":
+                self.position = max(0, self.position - SONGS_PER_PAGE)  # Page up
+                print("Left")
+                self.print_song_info()
+            elif key == 'key_1':  #  
+                song = self.songs[self.position]
+                print("opening Current song:", song.name)
+                self.play_song()
+            elif key == 'key_2':   
+                    print("Starting WebUI...")
+                    self.webui_process = subprocess.Popen(['python', 'webui.py'])
+                    self.is_webui_running = True
+                    print(get_ip_addresses())
+        else:
+            if key == 'key_3':  #  
+                print("Stopping WebUI...")
+                self.webui_process.terminate()
+                self.webui_process.wait()
+                self.is_webui_running = False
    
     def play_song(self):
         input_port_name = "f_midi"
@@ -151,10 +197,6 @@ class Menu:
         input_port = mido.open_input(input_port_name)
 
         song_path= self.songs[self.position].song_file_path
-        #song_path="songs_lib/grm_dnb152.json"
-
-        # midi_thread = threading.Thread(target=read_midi_input)
-        # midi_thread.start()
         try:
             with open(song_path, "r") as file:
                 song_json = file.read()
@@ -183,13 +225,23 @@ def main():
             menu.handle_keypress('right')
         if not GPIO.input(KEY1_PIN):
             menu.handle_keypress('key_1')
+        if not GPIO.input(KEY2_PIN):
+            menu.handle_keypress('key_2')
+        if not GPIO.input(KEY3_PIN):
+            menu.handle_keypress('key_3')
             
         
 
-        menu.draw(draw, font)
-        menu.update(draw, font) #something for running line
-        menu.draw_song_info(draw, font,10,140)
+        if menu.is_webui_running:
+            menu.draw_webui(draw,font)  
+            time.sleep(0.1)
+        else:
+            menu.draw(draw, font)
+            menu.update(draw, font)
+            menu.draw_song_info(draw, font,10,140)
+
         disp.ShowImage(image, 0, 0)
+        time.sleep(0.05)
 
 try:
     main()

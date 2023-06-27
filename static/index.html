@@ -1,35 +1,58 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Midi Library</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default-dark/style.min.css" />
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default-dark/style.min.css">
+    <link rel="stylesheet" href="./../static/bootstrap4/css/bootstrap.css">
+    <link rel="stylesheet" href="./../static/bootstrap4/css/fontawesome/fontawesome.min.css">
+    <link rel="stylesheet" href="./../static/bootstrap4/css/fontawesome/regular.min.css">
+    <link rel="stylesheet" href="./../static/bootstrap4/css/fontawesome/solid.min.css">
+    <link rel="stylesheet" href="./../static/bootstrap4/css/cover.css">
+    <script src="./../bootstrap4/js/jquery-2.2.0.min.js"></script>
+    <script src="./../bootstrap4/js/popper.min.js"></script>
     <style>
-        body {
+        /* body {
             background: #000;
             color: #fff;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Disable body scroll */
-            display: flex; /* Use flex to split the body in half */
-        }
+            overflow: hidden;
+            display: flex;
+        } */
+
         #midi-tree-container {
-            width: 40%; /* Occupy half of the body */
-            height: 100vh; /* Full viewport height */
+            width: 40%;
+            /* Occupy half of the body */
+            height: 100vh;
+            /* Full viewport height */
             padding: 10px;
-            box-sizing: border-box; /* Include padding and border in element's total width and height */
+            box-sizing: border-box;
+            /* Include padding and border in element's total width and height */
         }
+
         #midi-tree {
-            height: calc(100vh - 20px); /* Full viewport height minus padding */
-            overflow-y: auto; /* Enable scroll within container */
+            /* height: calc(100vh - 20px); */
+            /* Full viewport height minus padding */
+            overflow-y: auto;
+            /* Enable scroll within container */
         }
+
         #right-side-container {
-            width: 60%; /* Occupy the other half of the body */
-            height: 100vh; /* Full viewport height */
+            width: 60%;
+            /* Occupy the other half of the body */
+            height: 100vh;
+            /* Full viewport height */
             padding: 10px;
-            box-sizing: border-box; /* Include padding and border in element's total width and height */
-            background: #222; /* Dark background for contrast */
-            color: #fff; /* White text for visibility */
+            box-sizing: border-box;
+            /* Include padding and border in element's total width and height */
+            background: #222;
+            /* Dark background for contrast */
+            color: #fff;
+            /* White text for visibility */
         }
+
         #midi-file-path {
             width: 100%;
             padding: 10px;
@@ -38,41 +61,362 @@
         }
 
         #midi-file-details {
-            border-collapse: collapse;  /* This combines adjacent cell borders into a single border */
+            border-collapse: collapse;
+            /* This combines adjacent cell borders into a single border */
         }
 
-        #midi-file-details th, #midi-file-details td {
-            border: 1px solid #fff;  /* This sets the border color to white */
-            padding: 10px;  /* This adds some padding to the cells */
+        #midi-file-details th,
+        #midi-file-details td {
+            border: 1px solid #fff;
+            /* This sets the border color to white */
+            padding: 10px;
+            /* This adds some padding to the cells */
+        }
+
+        .jstree-default-dark {
+            background: inherit !important;
+        }
+
+        .jstree-anchor {
+            color: white !important;
         }
     </style>
 </head>
+
 <body>
-    <div id="midi-tree-container">
-        <div id="midi-tree"></div>
+    <div class="cover d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <div class="inner h-100">
+            <div class="card-group h-100">
+                <div class="card text-white bg-secondary col-2" style="padding: 0;">
+                    <div class="card-header">
+                        Midi files
+                    </div>
+                    <div id="midi-tree"></div>
+                </div>
+                <div class="card text-white bg-secondary">
+                    <div class="card-header">
+                        <form class="form-inline">
+                            <label>Song</label>
+                            <input class="form-control ml-2 w-50 bg-light" id="songName" type="text"
+                                placeholder="Name song">
+                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download
+                                song</button>
+                        </form>
+                    </div>
+                    <!-- Intro block -->
+                    <div class="card-group p-2 section-intro">
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Section Intro
+                            </div>
+                            <div class="card-body">
+                                Intro
+                            </div>
+                        </div>
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Groove
+                            </div>
+                            <div class="card-body groove-block" ondrop="drop(event)" ondragover="allowDrop(event)">
+
+                            </div>
+                        </div>
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Fills
+                            </div>
+                            <div class="card-body">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Song parts block -->
+                    <div class="card-group p-2 section-song">
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Section
+                                <i class="fa-regular fa-trash-can float-right" onclick="removeSongPart(this)"></i>
+                            </div>
+                            <div class="card-body section-song-name">
+                                <input class="form-control bg-dark text-white song-part-name" type="text"
+                                    placeholder="Name song">
+                            </div>
+                        </div>
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Groove
+                            </div>
+                            <div class="card-body groove-block" ondrop="drop(event)" ondragover="allowDrop(event)">
+
+                            </div>
+                        </div>
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Fills
+                            </div>
+                            <div class="card-body fills-block" ondrop="drop(event)" ondragover="allowDrop(event)">
+
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-block m-2 btn-outline-warning"
+                        onclick="addSongPart()">Add song part</button>
+                    <!-- Outro block -->
+                    <div class="card-group p-2 section-outro">
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Section Outro
+                            </div>
+                            <div class="card-body">
+                                Outro
+                            </div>
+                        </div>
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Groove
+                            </div>
+                            <div class="card-body groove-block" ondrop="drop(event)" ondragover="allowDrop(event)">
+
+                            </div>
+                        </div>
+                        <div class="card text-white bg-dark">
+                            <div class="card-header">
+                                Fills
+                            </div>
+                            <div class="card-body">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="right-side-container">
-        <input type="text" id="midi-file-path" readonly>
-        <table id="midi-file-details" style="width:100%; margin-top:20px;">
-            <thead>
-                <tr>
-                    <th>Song section</th>
-                    <th>Groove</th>
-                    <th>Fills</th>
-                    <th>
-                        <button id="add-first-row-btn">Add</button>
-                    </th>
-                    <th>Remove</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Rows will be populated dynamically -->
-            </tbody>
-        </table>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
     <script>
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("id", ev.target.id);
+            ev.dataTransfer.setData("block", getNameBlock(ev.target.parentElement));
+            ev.dataTransfer.setData("section", getNameSection(ev.target.parentElement.parentElement));
+        }
+
+        function getNameBlock(elem) {
+            var block = '';
+            elem.classList.forEach(function (item) {
+                if (item == 'groove-block' || item == 'fills-block') {
+                    block = item;
+                }
+            });
+
+            return block;
+        }
+
+        function getNameSection(elem) {
+            var section = '';
+            elem.classList.forEach(function (item) {
+                if (item == 'section-intro' || item == 'section-song' || item == 'section-outro') {
+                    section = item;
+                }
+            });
+
+            return section;
+        }
+
+        function addSongPart() {
+            var i_trash = $('<i></i>').addClass('fa-regular fa-trash-can float-right').attr('onclick',
+                'removeSongPart(this)');
+
+            const divCard = $("<div></div>").addClass("card text-white bg-dark");
+            var divHeader = $("<div></div>").addClass("card-header");
+            var divBodySongName = $("<div></div>").addClass("card-body section-song-name");
+            var inputSongName = $("<input>").addClass("form-control bg-dark text-white song-part-name").attr('type',
+                'text').attr('placeholder', 'Enter name song');
+            var divBodyGroove = $("<div></div>").addClass("card-body groove-block").attr('ondrop', 'drop(event)').attr(
+                'ondragover', 'allowDrop(event)');
+            var divBodyFills = $("<div></div>").addClass("card-body fills-block").attr('ondrop', 'drop(event)').attr(
+                'ondragover', 'allowDrop(event)');
+
+            var divCardSection = divCard.clone().append(divHeader.clone().text("Section").append(i_trash)).append(
+                divBodySongName.append(inputSongName));
+            var divCardGroove = divCard.clone().append(divHeader.clone().text("Groove")).append(divBodyGroove);
+            var divCardFills = divCard.clone().append(divHeader.clone().text("Fills")).append(divBodyFills);
+
+            var divCardMain = $("<div></div>").addClass("card-group p-2 section-song");
+            divCardMain.append(divCardSection).append(divCardGroove).append(divCardFills);
+
+            if ($("div.section-song:last").length) {
+                $("div.section-song:last").after(divCardMain);
+            } else {
+                $("div.section-intro").after(divCardMain);
+            }
+        }
+
+        function removeSongPart(elem) {
+            elem.parentElement.parentElement.parentElement.remove();
+        }
+
+        function isError() {
+            var isError = false;
+            var errorMessage = '';
+
+            if (validateInput($("#songName"))) {
+                isError = true;
+                errorMessage += 'Enter song name\n';
+            }
+
+            const songsName = $('div.section-song input');
+
+            for (let i = 0; i < songsName.length; i++) {
+                if (validateInput(songsName[i])) {
+                    isError = true;
+                    errorMessage += 'Enter song part name\n';
+                }
+            }
+
+            document.querySelectorAll('.section-song').forEach(songPart => {
+                var grooveBlock = songPart.querySelector(`.groove-block a`);
+                if (grooveBlock == null) {
+                    isError = true;
+                    errorMessage += 'Please add groove of song part\n';
+                }
+            });
+
+            alert(errorMessage);
+
+            return isError;
+        }
+
+        function validateInput(elem) {
+            var isError = false;
+
+            if ($(elem).val().trim() == '') {
+                $(elem).addClass('is-invalid');
+                isError = true;
+            } else {
+                $(elem).removeClass('is-invalid');
+            }
+
+            return isError;
+        }
+
+        function downloadSong() {
+            if (isError()) {
+                return;
+            }
+
+            getPathFiles('section-song');
+
+            var songJson = {
+                name: $("#songName").val().trim(),
+                tempo: 120,
+                time_signature: '4/4',
+                midi_chanel: 10,
+                intro: getPathFiles('section-intro'),
+                outro: getPathFiles('section-outro'),
+                song_parts: getPathFiles('section-song')
+            };
+
+            downloadJSON(JSON.stringify(songJson), `${songJson.name}.json`, "text/plain");
+        }
+
+        function downloadJSON(content, fileName, contentType) {
+            const a = document.createElement("a");
+            const file = new Blob([content], {
+                type: contentType
+            });
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+        }
+
+        function uploadServer(object) {
+
+        }
+
+        function getPathFiles(section) {
+            if (section == 'section-song') {
+                return getPathFilesForSongParts();
+            } else {
+                var result = {};
+                var grooveBlock = document.querySelector(`.${section} .groove-block a`);
+                result.groove = grooveBlock != null ? grooveBlock.getAttribute('filePath') : null;
+
+                return result;
+            }
+        }
+
+        function getPathFilesForSongParts() {
+            var result = [];
+
+            document.querySelectorAll('.section-song').forEach(songPart => {
+                var grooveBlock = songPart.querySelector(`.groove-block a`);
+                var grooveValue = grooveBlock != null ? grooveBlock.getAttribute('filePath') : null;
+
+                if (grooveValue == null) {
+
+                }
+
+                result.push({
+                    name: songPart.querySelector('input').value.trim(),
+                    groove: grooveValue,
+                    fills: []
+                });
+
+                songPart.querySelectorAll('.fills-block a').forEach(fill => {
+                    result[result.length - 1].fills.push(fill.getAttribute('filepath'));
+                });
+            });
+
+            return result;
+        }
+
+        function drop(ev) {
+            var i_trash = $('<i></i>').addClass('fa-regular fa-trash-can float-right').attr('onclick',
+                'removeMidi(this)');
+
+
+            if (getNameBlock(ev.target) == '') {
+                return;
+            }
+
+            ev.preventDefault();
+            var idTransfer = ev.dataTransfer.getData("id");
+            var blockTransfer = ev.dataTransfer.getData("block");
+            var sectionTransfer = ev.dataTransfer.getData("section");
+
+            var elem = $("#" + idTransfer);
+            var newId = idTransfer;
+
+            if (blockTransfer == '') {
+                elem = $("#" + idTransfer).clone();
+                i_trash.appendTo(elem);
+            } else {
+                newId = idTransfer.replace(`_${sectionTransfer}`).replace(`_${blockTransfer}`);
+            }
+
+            elem.attr('id', `${newId}_${sectionTransfer}_${blockTransfer}`);
+            elem.addClass('form-control bg-info mb-2');
+
+            const sectionTarget = getNameSection(ev.target.parentElement.parentElement);
+            const blockTarget = getNameBlock(ev.target);
+
+            // Блоки в которых разрешен только один миди файл
+            if (blockTarget == 'groove-block') {
+                $(ev.target.children).remove();
+            }
+
+            elem.appendTo(ev.target);
+        }
+
+        function removeMidi(elem) {
+            elem.parentElement.remove();
+        }
+
         function convertData(data) {
             let result = [];
             for (let key in data) {
@@ -85,70 +429,120 @@
                 } else {
                     result.push({
                         "text": key,
-                        "data": {"path": data[key]},
-                        "icon": "jstree-file"
+                        "data": {
+                            "path": data[key]
+                        },
+                        "icon": "jstree-file",
+                        "a_attr": {
+                            "draggable": true,
+                            "ondragstart": "drag(event)",
+                            "filepath": data[key]
+                        }
                     });
                 }
             }
             return result;
         }
 
-        $(document).ready(function () {
-            var selectedNodeData = null;
-
-            $.ajax({
-                url: '/api/midi_lib',
-                method: 'GET',
-                success: function (data) {
-                    $('#midi-tree').jstree({
-                        'core': {
-                            'data': convertData(data),
-                            'themes': {
-                                'name': 'default-dark',
-                                'dots': true,
-                                'icons': true
-                            }
+        const isJsonOffline = false;
+        if (isJsonOffline) {
+            var jsonMidi = {
+                "AQ": {
+                    "(aq) Glitch Hop MIDI Library": {
+                        "Full Drum Loop": {
+                            "90 Hip Hop_1.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/90 Hip Hop_1.mid",
+                            "90 Hip Hop_2 With Fill.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/90 Hip Hop_2 With Fill.mid",
+                            "Break Down - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Break Down - Full.mid",
+                            "Breakbeat - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Breakbeat - Full.mid",
+                            "Breaking Bad - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Breaking Bad - Full.mid",
+                            "Chilling at 80_1.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Chilling at 80_1.mid",
+                            "Chilling at 80_2.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Chilling at 80_2.mid",
+                            "Counting Time - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Counting Time - Full.mid",
+                            "Dirty South 1.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Dirty South 1.mid",
+                            "East Coast 1.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/East Coast 1.mid",
+                            "East Coast 3.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/East Coast 3.mid",
+                            "Funk One - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Funk One - Full.mid",
+                            "Funky found - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Funky found - Full.mid",
+                            "G Funk_1.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/G Funk_1.mid",
+                            "G Funk_2.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/G Funk_2.mid",
+                            "G Funk_3.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/G Funk_3.mid",
+                            "G Funk_4.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/G Funk_4.mid",
+                            "Heavy Kick MIDI.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Heavy Kick MIDI.mid",
+                            "Hippidy Hop - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Hippidy Hop - Full.mid",
+                            "Indie Glitch - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Indie Glitch - Full.mid",
+                            "Moving Trip - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Moving Trip - Full.mid",
+                            "Rock Trip - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Rock Trip - Full.mid",
+                            "Softer Hop - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Softer Hop - Full.mid",
+                            "Swing State - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Swing State - Full.mid",
+                            "Swing State 2 - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Swing State 2 - Full.mid",
+                            "Swing Swap - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Swing Swap - Full.mid",
+                            "Traveling - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Traveling - Full.mid",
+                            "Trippy Town - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Trippy Town - Full.mid",
+                            "Trudging - Full.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/Full Drum Loop/Trudging - Full.mid"
+                        },
+                        "High Hat": {
+                            "Dusty Shelf - Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Dusty Shelf - Hats.mid",
+                            "Epic Toms_Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Epic Toms_Hats.mid",
+                            "Groovy Stew - Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Groovy Stew - Hats.mid",
+                            "Indie Glitch - Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Indie Glitch - Hats.mid",
+                            "Machine Air - Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Machine Air - Hats.mid",
+                            "Rubber Eats - Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Rubber Eats - Hats.mid",
+                            "Timer Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Timer Hats.mid",
+                            "Vill'in Hats.mid": "midi_lib/AQ/(aq) Glitch Hop MIDI Library/High Hat/Vill'in Hats.mid"
                         }
-                    }).bind("select_node.jstree", function (e, data) {
-                        // Check if it is a file node
-                        if(data.node.icon === "jstree-file"){
-                            var path = data.node.data.path;
-                            $('#midi-file-path').val(path);
-                           selectedNodeData = path;
+                    }
+                }
+            }
+
+            $('#midi-tree').jstree({
+                'core': {
+                    'data': convertData(jsonMidi),
+                    'themes': {
+                        'name': 'default-dark',
+                        'dots': true,
+                        'icons': true
+                    },
+
+                }
+            }).bind("select_node.jstree", function (e, data) {
+                // Check if it is a file node
+                if (data.node.icon === "jstree-file") {
+                    var path = data.node.data.path;
+                    $('#midi-file-path').val(path);
+                    selectedNodeData = path;
+                }
+            });
+        } else {
+
+            $(document).ready(function () {
+                    var selectedNodeData = null;
+
+                    $.ajax({
+                        url: '/api/midi_lib',
+                        method: 'GET',
+                        success: function (data) {
+                            $('#midi-tree').jstree({
+                                'core': {
+                                    'data': convertData(data),
+                                    'themes': {
+                                        'name': 'default-dark',
+                                        'dots': true,
+                                        'icons': true
+                                    }
+                                }
+                            }).bind("select_node.jstree", function (e, data) {
+                                // Check if it is a file node
+                                if (data.node.icon === "jstree-file") {
+                                    var path = data.node.data.path;
+                                    $('#midi-file-path').val(path);
+                                    selectedNodeData = path;
+                                }
+                            });
                         }
                     });
-                }
             });
-
-            // Add the first row
-            $('#add-first-row-btn').on('click', function () {
-                var row = '<tr><td ></td><td class="groove-cell" ></td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
-                $('#midi-file-details tbody').append(row);
-            });
-
-            $(document).on('click', '.add-row-btn', function () {
-                var row = '<tr><td></td><td class="groove-cell">aaaaa</td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
-                $(this).parents('tr').after(row);
-            });
-
-            // Remove a row
-            $(document).on('click', '.remove-row-btn', function () {
-                $(this).parents('tr').remove();
-            });
-
-            // Drag and drop handlers
-            $(document).on('dragover', '.groove-cell', function(event) {
-                event.preventDefault();  // This is necessary to allow a drop
-            });
-
-            $(document).on('drop', '.groove-cell', function(event) {
-                event.preventDefault();  // This prevents the browser's default handling of the data
-                if (selectedNodeData) {
-                    $(this).text(selectedNodeData);
-                    selectedNodeData = null;  // Clear the data
-                }
-            });
-        });
+        }
     </script>
 </body>
+
 </html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Midi Library</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default-dark/style.min.css" />
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Disable body scroll */
+            display: flex; /* Use flex to split the body in half */
+        }
+        #midi-tree-container {
+            width: 40%; /* Occupy half of the body */
+            height: 100vh; /* Full viewport height */
+            padding: 10px;
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+        }
+        #midi-tree {
+            height: calc(100vh - 20px); /* Full viewport height minus padding */
+            overflow-y: auto; /* Enable scroll within container */
+        }
+        #right-side-container {
+            width: 60%; /* Occupy the other half of the body */
+            height: 100vh; /* Full viewport height */
+            padding: 10px;
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+            background: #222; /* Dark background for contrast */
+            color: #fff; /* White text for visibility */
+        }
+        #midi-file-path {
+            width: 100%;
+            padding: 10px;
+            color: #000;
+            background: #fff;
+        }
+
+        #midi-file-details {
+            border-collapse: collapse;  /* This combines adjacent cell borders into a single border */
+        }
+
+        #midi-file-details th, #midi-file-details td {
+            border: 1px solid #fff;  /* This sets the border color to white */
+            padding: 10px;  /* This adds some padding to the cells */
+        }
+    </style>
+</head>
+<body>
+    <div id="midi-tree-container">
+        <div id="midi-tree"></div>
+    </div>
+    <div id="right-side-container">
+        <input type="text" id="midi-file-path" readonly>
+        <table id="midi-file-details" style="width:100%; margin-top:20px;">
+            <thead>
+                <tr>
+                    <th>Song section</th>
+                    <th>Groove</th>
+                    <th>Fills</th>
+                    <th>
+                        <button id="add-first-row-btn">Add</button>
+                    </th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+    <script>
+        function convertData(data) {
+            let result = [];
+            for (let key in data) {
+                if (typeof data[key] === 'object') {
+                    result.push({
+                        "text": key,
+                        "children": convertData(data[key]),
+                        "icon": "jstree-folder"
+                    });
+                } else {
+                    result.push({
+                        "text": key,
+                        "data": {"path": data[key]},
+                        "icon": "jstree-file"
+                    });
+                }
+            }
+            return result;
+        }
+
+        $(document).ready(function () {
+            var selectedNodeData = null;
+
+            $.ajax({
+                url: '/api/midi_lib',
+                method: 'GET',
+                success: function (data) {
+                    $('#midi-tree').jstree({
+                        'core': {
+                            'data': convertData(data),
+                            'themes': {
+                                'name': 'default-dark',
+                                'dots': true,
+                                'icons': true
+                            }
+                        }
+                    }).bind("select_node.jstree", function (e, data) {
+                        // Check if it is a file node
+                        if(data.node.icon === "jstree-file"){
+                            var path = data.node.data.path;
+                            $('#midi-file-path').val(path);
+                           selectedNodeData = path;
+                        }
+                    });
+                }
+            });
+
+            // Add the first row
+            $('#add-first-row-btn').on('click', function () {
+                var row = '<tr><td ></td><td class="groove-cell" ></td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
+                $('#midi-file-details tbody').append(row);
+            });
+
+            $(document).on('click', '.add-row-btn', function () {
+                var row = '<tr><td></td><td class="groove-cell">aaaaa</td><td></td><td><button class="add-row-btn">Add</button></td><td><button class="remove-row-btn">Remove</button></td></tr>';
+                $(this).parents('tr').after(row);
+            });
+
+            // Remove a row
+            $(document).on('click', '.remove-row-btn', function () {
+                $(this).parents('tr').remove();
+            });
+
+            // Drag and drop handlers
+            $(document).on('dragover', '.groove-cell', function(event) {
+                event.preventDefault();  // This is necessary to allow a drop
+            });
+
+            $(document).on('drop', '.groove-cell', function(event) {
+                event.preventDefault();  // This prevents the browser's default handling of the data
+                if (selectedNodeData) {
+                    $(this).text(selectedNodeData);
+                    selectedNodeData = null;  // Clear the data
+                }
+            });
+        });
+    </script>
+</body>
+</html>
