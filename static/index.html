@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="./../static/bootstrap4/css/fontawesome/regular.min.css">
     <link rel="stylesheet" href="./../static/bootstrap4/css/fontawesome/solid.min.css">
     <link rel="stylesheet" href="./../static/bootstrap4/css/cover.css">
-    <script src="./../bootstrap4/js/jquery-2.2.0.min.js"></script>
-    <script src="./../bootstrap4/js/popper.min.js"></script>
+    <script src="./../static/bootstrap4/js/jquery-2.2.0.min.js"></script>
+    <script src="./../static/bootstrap4/js/popper.min.js"></script>
     <style>
         /* body {
             background: #000;
@@ -22,25 +22,28 @@
             display: flex;
         } */
 
-        #midi-tree-container {
-            width: 40%;
-            /* Occupy half of the body */
+       #midi-tree-container {
+           /* width: 50%;*/
+            /* Occupy half of the body  */
             height: 100vh;
             /* Full viewport height */
             padding: 10px;
             box-sizing: border-box;
-            /* Include padding and border in element's total width and height */
+            /* Include padding and border in element's total width and height  */
         }
+       
 
         #midi-tree {
-            /* height: calc(100vh - 20px); */
+            
+            height: calc(100vh - 100px); 
             /* Full viewport height minus padding */
             overflow-y: auto;
+            overflow-x: auto;
             /* Enable scroll within container */
         }
 
         #right-side-container {
-            width: 60%;
+            width: 50%;
             /* Occupy the other half of the body */
             height: 100vh;
             /* Full viewport height */
@@ -51,6 +54,7 @@
             /* Dark background for contrast */
             color: #fff;
             /* White text for visibility */
+            
         }
 
         #midi-file-path {
@@ -86,21 +90,22 @@
 <body>
     <div class="cover d-flex w-100 h-100 p-3 mx-auto flex-column">
         <div class="inner h-100">
-            <div class="card-group h-100">
-                <div class="card text-white bg-secondary col-2" style="padding: 0;">
+            <div class="card-group h-100  " >
+                <div class="card text-white bg-secondary col-3" style="padding: 0; ">
                     <div class="card-header">
                         Midi files
                     </div>
                     <div id="midi-tree"></div>
                 </div>
-                <div class="card text-white bg-secondary">
+                
+                <div class="card text-white bg-secondary" style="height: calc(100vh - 50px); overflow-y: auto;">
                     <div class="card-header">
                         <form class="form-inline">
                             <label>Song</label>
                             <input class="form-control ml-2 w-50 bg-light" id="songName" type="text"
                                 placeholder="Name song">
-                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download
-                                song</button>
+                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download song</button>
+                                <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Save song</button>
                         </form>
                     </div>
                     <!-- Intro block -->
@@ -158,7 +163,7 @@
                             </div>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-block m-2 btn-outline-warning"
+                    <button type="button" class="btn btn-sm btn-block m-2 btn-outline-warning" style="width: 80%;"
                         onclick="addSongPart()">Add song part</button>
                     <!-- Outro block -->
                     <div class="card-group p-2 section-outro">
