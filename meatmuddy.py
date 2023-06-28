@@ -188,6 +188,10 @@ class Menu:
                 self.webui_process.terminate()
                 self.webui_process.wait()
                 self.is_webui_running = False
+                self.reload_songs_list()
+
+    def reload_songs_list(self):
+        self.songs = [SongMenuItem(name, i) for i, name in enumerate(songs_lib())]
    
     def play_song(self):
         input_port_name = "f_midi"

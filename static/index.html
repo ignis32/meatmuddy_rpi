@@ -22,8 +22,8 @@
             display: flex;
         } */
 
-       #midi-tree-container {
-           /* width: 50%;*/
+        #midi-tree-container {
+            /* width: 50%;*/
             /* Occupy half of the body  */
             height: 100vh;
             /* Full viewport height */
@@ -31,11 +31,11 @@
             box-sizing: border-box;
             /* Include padding and border in element's total width and height  */
         }
-       
+
 
         #midi-tree {
-            
-            height: calc(100vh - 100px); 
+
+            height: calc(100vh - 100px);
             /* Full viewport height minus padding */
             overflow-y: auto;
             overflow-x: auto;
@@ -54,7 +54,7 @@
             /* Dark background for contrast */
             color: #fff;
             /* White text for visibility */
-            
+
         }
 
         #midi-file-path {
@@ -90,22 +90,23 @@
 <body>
     <div class="cover d-flex w-100 h-100 p-3 mx-auto flex-column">
         <div class="inner h-100">
-            <div class="card-group h-100  " >
+            <div class="card-group h-100  ">
                 <div class="card text-white bg-secondary col-3" style="padding: 0; ">
                     <div class="card-header">
                         Midi files
                     </div>
                     <div id="midi-tree"></div>
                 </div>
-                
+
                 <div class="card text-white bg-secondary" style="height: calc(100vh - 50px); overflow-y: auto;">
                     <div class="card-header">
                         <form class="form-inline">
                             <label>Song</label>
                             <input class="form-control ml-2 w-50 bg-light" id="songName" type="text"
                                 placeholder="Name song">
-                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download song</button>
-                                <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Save song</button>
+                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download
+                                song</button>
+                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Save song</button>
                         </form>
                     </div>
                     <!-- Intro block -->
@@ -236,6 +237,7 @@
             var i_trash = $('<i></i>').addClass('fa-regular fa-trash-can float-right').attr('onclick',
                 'removeSongPart(this)');
 
+
             const divCard = $("<div></div>").addClass("card text-white bg-dark");
             var divHeader = $("<div></div>").addClass("card-header");
             var divBodySongName = $("<div></div>").addClass("card-body section-song-name");
@@ -326,7 +328,7 @@
                 song_parts: getPathFiles('section-song')
             };
 
-            downloadJSON(JSON.stringify(songJson), `${songJson.name}.json`, "text/plain");
+            downloadJSON(JSON.stringify(songJson,null, 2), `${songJson.name}.json`, "text/plain");
         }
 
         function downloadJSON(content, fileName, contentType) {
@@ -380,37 +382,86 @@
             return result;
         }
 
+        function uuidv4() {
+            return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
+        function swapElements(elementId1, elementId2) {
+            var element1 = document.getElementById(elementId1);
+            var element2 = document.getElementById(elementId2);
+
+            var clone1 = element1.cloneNode(true);
+            var clone2 = element2.cloneNode(true);
+
+            element1.replaceWith(clone2);
+            element2.replaceWith(clone1);
+        }
+
+
+
         function drop(ev) {
+
+           
+            ev.preventDefault();
+
+            // handling swapping two midi clips
+                 //target is midi clip                             // source is within block
+            if (ev.target.classList.contains("jstree-anchor") && ev.dataTransfer.getData("block") != "") {
+                // The target element has the class "js-anchor" and origin is not a tree 
+                swapElements(ev.dataTransfer.getData("id"), ev.target.id);
+                return;
+            }
+
+
             var i_trash = $('<i></i>').addClass('fa-regular fa-trash-can float-right').attr('onclick',
                 'removeMidi(this)');
 
+            // handling dragging from tree to midi clip 
+                // target is midi clip                          // source is not within block
+            if (ev.target.classList.contains("jstree-anchor") && ev.dataTransfer.getData("block") == "") 
+            {
+                idTransfer = ev.dataTransfer.getData("id");
+                elem = $("#" + idTransfer).clone();
+                i_trash.appendTo(elem);
+                var newId = "id_midi_" + uuidv4()
+                elem.attr('id', newId);
+                elem.addClass('form-control bg-info mb-2');
+                $("#" + ev.target.id).replaceWith(elem);
+                
+ 
+                return;
+            }
+         
+            // handling dragging from tree to block
 
             if (getNameBlock(ev.target) == '') {
                 return;
             }
+         
 
-            ev.preventDefault();
+           
             var idTransfer = ev.dataTransfer.getData("id");
             var blockTransfer = ev.dataTransfer.getData("block");
             var sectionTransfer = ev.dataTransfer.getData("section");
 
             var elem = $("#" + idTransfer);
-            var newId = idTransfer;
+            // var newId = idTransfer;
+            var newId = "id_midi_" + uuidv4()
 
             if (blockTransfer == '') {
                 elem = $("#" + idTransfer).clone();
                 i_trash.appendTo(elem);
-            } else {
-                newId = idTransfer.replace(`_${sectionTransfer}`).replace(`_${blockTransfer}`);
             }
+
 
             elem.attr('id', `${newId}_${sectionTransfer}_${blockTransfer}`);
             elem.addClass('form-control bg-info mb-2');
 
-            const sectionTarget = getNameSection(ev.target.parentElement.parentElement);
+           // const sectionTarget = getNameSection(ev.target.parentElement.parentElement);
             const blockTarget = getNameBlock(ev.target);
 
-            // Блоки в которых разрешен только один миди файл
+            // Блоки в которых разрешен только один миди файл   
             if (blockTarget == 'groove-block') {
                 $(ev.target.children).remove();
             }
@@ -520,31 +571,31 @@
         } else {
 
             $(document).ready(function () {
-                    var selectedNodeData = null;
+                var selectedNodeData = null;
 
-                    $.ajax({
-                        url: '/api/midi_lib',
-                        method: 'GET',
-                        success: function (data) {
-                            $('#midi-tree').jstree({
-                                'core': {
-                                    'data': convertData(data),
-                                    'themes': {
-                                        'name': 'default-dark',
-                                        'dots': true,
-                                        'icons': true
-                                    }
+                $.ajax({
+                    url: '/api/midi_lib',
+                    method: 'GET',
+                    success: function (data) {
+                        $('#midi-tree').jstree({
+                            'core': {
+                                'data': convertData(data),
+                                'themes': {
+                                    'name': 'default-dark',
+                                    'dots': true,
+                                    'icons': true
                                 }
-                            }).bind("select_node.jstree", function (e, data) {
-                                // Check if it is a file node
-                                if (data.node.icon === "jstree-file") {
-                                    var path = data.node.data.path;
-                                    $('#midi-file-path').val(path);
-                                    selectedNodeData = path;
-                                }
-                            });
-                        }
-                    });
+                            }
+                        }).bind("select_node.jstree", function (e, data) {
+                            // Check if it is a file node
+                            if (data.node.icon === "jstree-file") {
+                                var path = data.node.data.path;
+                                $('#midi-file-path').val(path);
+                                selectedNodeData = path;
+                            }
+                        });
+                    }
+                });
             });
         }
     </script>
