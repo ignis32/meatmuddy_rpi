@@ -102,16 +102,16 @@
                     <div class="card-header">
                         <form class="form-inline">
                             <label>Song</label>
-                            <input class="form-control ml-2 w-50 bg-light" id="songName" type="text"
+                            <input class="form-control ml-2 w-20 bg-light" id="songName" type="text"
                                 placeholder="Name song">
                             <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download
                                 song</button>
-                            <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Save song</button>
+                            <button type="button" class="btn ml-2 btn-dark" onclick="uploadSong()">Save song</button>
                         </form>
                     </div>
                     <!-- Intro block -->
                     <div class="card-group p-2 section-intro">
-                        <div class="card text-white bg-dark">
+                        <div class="card text-white bg-dark col-2">
                             <div class="card-header">
                                 Section Intro
                             </div>
@@ -137,14 +137,14 @@
                     </div>
                     <!-- Song parts block -->
                     <div class="card-group p-2 section-song">
-                        <div class="card text-white bg-dark">
+                        <div class="card text-white bg-dark col-2">
                             <div class="card-header">
                                 Section
                                 <i class="fa-regular fa-trash-can float-right" onclick="removeSongPart(this)"></i>
                             </div>
                             <div class="card-body section-song-name">
                                 <input class="form-control bg-dark text-white song-part-name" type="text"
-                                    placeholder="Name song">
+                                    placeholder="Section name">
                             </div>
                         </div>
                         <div class="card text-white bg-dark">
@@ -168,7 +168,7 @@
                         onclick="addSongPart()">Add song part</button>
                     <!-- Outro block -->
                     <div class="card-group p-2 section-outro">
-                        <div class="card text-white bg-dark">
+                        <div class="card text-white bg-dark col-2">
                             <div class="card-header">
                                 Section Outro
                             </div>
@@ -238,7 +238,8 @@
                 'removeSongPart(this)');
 
 
-            const divCard = $("<div></div>").addClass("card text-white bg-dark");
+            const divCardcol2 = $("<div></div>").addClass("card text-white bg-dark col-2");
+            const divCard = $("<div></div>").addClass("card text-white bg-dark ");
             var divHeader = $("<div></div>").addClass("card-header");
             var divBodySongName = $("<div></div>").addClass("card-body section-song-name");
             var inputSongName = $("<input>").addClass("form-control bg-dark text-white song-part-name").attr('type',
@@ -248,7 +249,7 @@
             var divBodyFills = $("<div></div>").addClass("card-body fills-block").attr('ondrop', 'drop(event)').attr(
                 'ondragover', 'allowDrop(event)');
 
-            var divCardSection = divCard.clone().append(divHeader.clone().text("Section").append(i_trash)).append(
+            var divCardSection = divCardcol2.clone().append(divHeader.clone().text("Section").append(i_trash)).append(
                 divBodySongName.append(inputSongName));
             var divCardGroove = divCard.clone().append(divHeader.clone().text("Groove")).append(divBodyGroove);
             var divCardFills = divCard.clone().append(divHeader.clone().text("Fills")).append(divBodyFills);
@@ -329,6 +330,47 @@
             };
 
             downloadJSON(JSON.stringify(songJson,null, 2), `${songJson.name}.json`, "text/plain");
+        }
+
+        function uploadSong() {
+            if (isError()) {
+                return;
+            }
+
+            getPathFiles('section-song');
+
+            var songJson = {
+                name: $("#songName").val().trim(),
+                tempo: 120,
+                time_signature: '4/4',
+                midi_chanel: 10,
+                intro: getPathFiles('section-intro'),
+                outro: getPathFiles('section-outro'),
+                song_parts: getPathFiles('section-song')
+            };
+
+            // Send a POST request to the server
+            fetch('/api/songs_lib?filename=' + encodeURIComponent(`${songJson.name}.json`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(songJson,null, 2)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    // Handle any errors that are returned by the server
+                    console.error('Error:', data.error);
+                    alert("failure");
+                } else {
+                    console.log('Success:', data.message);
+                }
+            })
+            .catch((error) => {
+                // Handle any errors that occur during the fetch
+                console.error('Error:', error);
+            });
         }
 
         function downloadJSON(content, fileName, contentType) {
