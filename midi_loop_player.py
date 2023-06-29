@@ -138,6 +138,38 @@ class MidiLoop:
                 self.loop_length_in_ticks=next_bar_time  # basically we've just calculated a loop length expressed in ticks.
                 self.ticks_left_to_end = next_bar_time
                 break  # assuming only one end_of_track event per track
+    
+    def trim_to_bars(self, num_bars):
+        if num_bars == 0:
+            return
+        # Calculate the trim length in ticks
+        trim_length_ticks = num_bars * self.quarter_notes_per_bar * self.ticks_per_quarter_note
+
+        # Iterate over each track
+        for i, track in enumerate(self.midi_file.tracks):
+            track_time = 0
+            trimmed_track = []
+            for msg in track:
+                # If adding this message won't exceed the trim length
+                if track_time + msg.time <= trim_length_ticks:
+                    trimmed_track.append(msg)
+                    track_time += msg.time
+                else:
+                    # If it's a note_on event that exceeds the trim length, add a note_off event at the trim point
+                    if msg.type == 'note_on':
+                        note_off = mido.Message('note_off', note=msg.note, velocity=msg.velocity, time=trim_length_ticks - track_time)
+                        trimmed_track.append(note_off)
+                    break  # We don't consider any events beyond the trim point
+
+            # Create an end_of_track event at the exact trim point
+            eot = mido.MetaMessage('end_of_track', time=trim_length_ticks - track_time)
+            trimmed_track.append(eot)
+
+            # Replace the old track with the trimmed version
+            self.midi_file.tracks[i] = mido.MidiTrack(trimmed_track)
+
+        self.loop_length_in_ticks = trim_length_ticks  # update the loop length
+        self.ticks_left_to_end = trim_length_ticks  # update ticks left to end
         
     def print_meta_messages(self):
         # Iterate over all tracks
@@ -149,7 +181,7 @@ class MidiLoop:
                     print(f"Meta message: {msg}")
 
     #@measure_execution_time
-    def load_file(self, midi_file_path):
+    def load_file(self, midi_file_path, bar_limit=0):
         print ("\n\n")
         print(f"loading drum loop from: {midi_file_path} ")
         self.midi_file = MidiFile(midi_file_path)
@@ -162,7 +194,9 @@ class MidiLoop:
         print (f"ticks_per_clock {self.ticks_per_clock}")
 
         self.detect_quarter_notes_per_bar()
+        self.trim_to_bars(bar_limit)
         self.fix_eot_to_bar()   # auto extend end-of-track to end of bar.
+        
         
         self.print_meta_messages()
         print("beats map:")

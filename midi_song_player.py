@@ -191,8 +191,12 @@ class MidiSong:
     def load_song(self,song_json):  #tba some error handling?
         
         self.song_data = json.loads(song_json)
+        self.bar_limit = self.song_data.get('bar_limit', 0)
+
+
         self.intro = self.create_midi_loop(self.song_data["intro"]["groove"])
         self.outro = self.create_midi_loop(self.song_data["outro"]["groove"])
+
    
         for part in self.song_data["song_parts"]:
             midi_part = self.create_midi_loop(part["groove"])
@@ -204,7 +208,7 @@ class MidiSong:
             return None
         else:
             midi_loop = MidiLoop(  self.output_port)
-            midi_loop.load_file(file)
+            midi_loop.load_file(file, bar_limit = self.bar_limit) # if there is a limit on amount of bars per loop, we trim loop.
         return midi_loop
 
     def get_current_part(self):
