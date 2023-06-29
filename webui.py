@@ -57,10 +57,9 @@ def save_to_songs_lib():
         return jsonify({'error': 'You must specify a filename'}), 400
 
     with open(os.path.join('songs_lib', filename), 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
     return jsonify({'message': 'File saved successfully'})
-
 
 
 if __name__ == '__main__':
