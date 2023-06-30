@@ -108,7 +108,7 @@ class MidiLoop:
         bar_length_ticks = self.quarter_notes_per_bar * self.ticks_per_quarter_note
 
         # find the last note_off event across all tracks
-        last_note_off_time = 0
+        last_note_on_off_time = 0
         longest_track_index = -1
 
         for i, track in enumerate(self.midi_file.tracks):
@@ -117,13 +117,13 @@ class MidiLoop:
                 track_time += msg.time  # MIDO uses relative time, so we sum it up
  
                 if msg.type == 'note_off' or (msg.type == 'note_on'): # # any note will do as a last.
-                    if track_time > last_note_off_time:
-                        last_note_off_time = track_time
+                    if track_time > last_note_on_off_time:
+                        last_note_on_off_time = track_time
                         longest_track_index = i
 
         # calculate the next bar time in ticks
-        num_bars = last_note_off_time // bar_length_ticks
-        if last_note_off_time % bar_length_ticks != 0:
+        num_bars = last_note_on_off_time // bar_length_ticks
+        if last_note_on_off_time % bar_length_ticks != 0:
             num_bars += 1
         next_bar_time = num_bars * bar_length_ticks
         print(f"next bar {next_bar_time}")
@@ -133,13 +133,16 @@ class MidiLoop:
         for msg in track:
             if msg.type == 'end_of_track':
                 # add the extra time to the end_of_track event
-                msg.time += next_bar_time - last_note_off_time
-                print(f"fixed ending {msg.time}")
+                print(f"eot absolute ticks {msg.time}  last_note_on_off_time {last_note_on_off_time}    end of last bar ticks {next_bar_time}")
+              #  msg.time += next_bar_time - last_note_on_off_time  ???????
+                msg.time = next_bar_time - last_note_on_off_time
+                print(f"fixed EOT to  {msg.time}  relative ticks ")
                 self.loop_length_in_ticks=next_bar_time  # basically we've just calculated a loop length expressed in ticks.
                 self.ticks_left_to_end = next_bar_time
                 break  # assuming only one end_of_track event per track
     
     def trim_to_bars(self, num_bars):
+        
         if num_bars == 0:
             return
         # Calculate the trim length in ticks
@@ -154,15 +157,19 @@ class MidiLoop:
                 if track_time + msg.time <= trim_length_ticks:
                     trimmed_track.append(msg)
                     track_time += msg.time
+                    print(f"{msg} {track_time}")
                 else:
                     # If it's a note_on event that exceeds the trim length, add a note_off event at the trim point
-                    if msg.type == 'note_on':
-                        note_off = mido.Message('note_off', note=msg.note, velocity=msg.velocity, time=trim_length_ticks - track_time)
-                        trimmed_track.append(note_off)
+                    
+                    # that's handled on player level in the end of the loop. Not required here.
+                   # if msg.type == 'note_on':
+                   #     note_off = mido.Message('note_off', note=msg.note, velocity=msg.velocity, time=trim_length_ticks - track_time)
+                   #     trimmed_track.append(note_off)
                     break  # We don't consider any events beyond the trim point
 
             # Create an end_of_track event at the exact trim point
             eot = mido.MetaMessage('end_of_track', time=trim_length_ticks - track_time)
+            print(f"trimmed to {trim_length_ticks}")
             trimmed_track.append(eot)
 
             # Replace the old track with the trimmed version

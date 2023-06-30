@@ -191,7 +191,7 @@ class MidiSong:
     def load_song(self,song_json):  #tba some error handling?
         
         self.song_data = json.loads(song_json)
-        self.bar_limit = self.song_data.get('bar_limit', 0)
+        self.bar_limit = int(self.song_data.get('bar_limit', 0))
 
 
         self.intro = self.create_midi_loop(self.song_data["intro"]["groove"])

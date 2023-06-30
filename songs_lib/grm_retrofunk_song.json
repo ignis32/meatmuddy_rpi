@@ -2,7 +2,7 @@
     "name": "groove monkey retrofunk",
     "tempo": 120,
     "time_signature": "4/4",
-    "midi_channel": 10,
+    "bar_limit": 2,
     "intro": {
       "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Retro Funk/Intro/Slow-Mid Intro Fill 07.mid"
     },

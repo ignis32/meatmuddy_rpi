@@ -99,15 +99,31 @@
                 </div>
 
                 <div class="card text-white bg-secondary" style="height: calc(100vh - 50px); overflow-y: auto;">
+                    <!-- Top bar   -->
                     <div class="card-header">
                         <form class="form-inline">
                             <label>Song</label>
-                            <input class="form-control ml-2 w-20 bg-light" id="songName" type="text"
+                            <input class="form-control ml-2 w-1 bg-light" id="songName" type="text"
                                 placeholder="Name song">
+
+                            <label>&nbsp;Bar trim</label>
+                            <input class="form-control ml-2 w-1 bg-light" id="bar_limit" type="text"
+                                placeholder="Bar limit" value=0 style=" width: 50px;">
+
+                            <label>&nbsp;Bpm</label>
+                            <input class="form-control ml-2 w-1 bg-light" id="bpm" type="text"
+                                placeholder="bpm" value="120" style=" width: 50px;">
+                            
+                                <label>&nbsp;Time sig</label>
+                            <input class="form-control ml-2 w-1 bg-light" id="time_sig" type="text"
+                                placeholder="time signature"value="4/4" style=" width: 50px;">
+
                             <button type="button" class="btn ml-2 btn-dark" onclick="downloadSong()">Download
                                 song</button>
-                            <button type="button" class="btn ml-2 btn-dark" onclick="uploadSong()">Save song</button>
+                            <button type="button" class="btn ml-2 btn-dark" onclick="uploadSong()">Upload song</button>
                         </form>
+
+                        
                     </div>
                     <!-- Intro block -->
                     <div class="card-group p-2 section-intro">
@@ -243,7 +259,7 @@
             var divHeader = $("<div></div>").addClass("card-header");
             var divBodySongName = $("<div></div>").addClass("card-body section-song-name");
             var inputSongName = $("<input>").addClass("form-control bg-dark text-white song-part-name").attr('type',
-                'text').attr('placeholder', 'Enter name song');
+                'text').attr('placeholder', 'Section name');
             var divBodyGroove = $("<div></div>").addClass("card-body groove-block").attr('ondrop', 'drop(event)').attr(
                 'ondragover', 'allowDrop(event)');
             var divBodyFills = $("<div></div>").addClass("card-body fills-block").attr('ondrop', 'drop(event)').attr(
@@ -321,9 +337,9 @@
 
             var songJson = {
                 name: $("#songName").val().trim(),
-                tempo: 120,
-                time_signature: '4/4',
-                midi_chanel: 10,
+                tempo: $("#bpm").val().trim(),
+                time_signature: $("#time_sig").val().trim(),
+                bar_limit: $("#bar_limit").val().trim(),
                 intro: getPathFiles('section-intro'),
                 outro: getPathFiles('section-outro'),
                 song_parts: getPathFiles('section-song')
@@ -341,9 +357,9 @@
 
             var songJson = {
                 name: $("#songName").val().trim(),
-                tempo: 120,
-                time_signature: '4/4',
-                midi_chanel: 10,
+                tempo: $("#bpm").val().trim(),
+                time_signature: $("#time_sig").val().trim(),
+                bar_limit: $("#bar_limit").val().trim(),
                 intro: getPathFiles('section-intro'),
                 outro: getPathFiles('section-outro'),
                 song_parts: getPathFiles('section-song')

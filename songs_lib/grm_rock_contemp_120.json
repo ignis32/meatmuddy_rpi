@@ -1,0 +1,39 @@
+{
+    "name": "grm_rock_contemp_120",
+    "tempo": "120",
+    "time_signature": "4/4",
+    "bar_limit": "4",
+    "intro": {
+        "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Intro Fills/S06 Intro Stick On 2 Fill 1.mid"
+    },
+    "outro": {
+        "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Outros/S06 Outro Ride 8ths.mid"
+    },
+    "song_parts": [
+        {
+            "name": "b",
+            "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Grooves/S06 Chorus OH 8th.mid",
+            "fills": [
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Chorus Fills/S06 Chorus BB Fill 1.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Chorus Fills/S06 Chorus BB Fill 2.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Chorus Fills/S06 Chorus BB Fill 3.mid"
+            ]
+        },
+        {
+            "name": "c",
+            "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Grooves/S06 Verse 8ths Ghosts.mid",
+            "fills": [
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Verse Fills/S06 Verse BB Fill 1.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Verse Fills/S06 Verse BB Fill 2.mid"
+            ]
+        },
+        {
+            "name": "d",
+            "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Grooves/S06 Bridge HT Ride.mid",
+            "fills": [
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Bridge Fills/S06 Bridge HT Ride Fill 1.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Contemporary Rock/Song 06 120/Bridge Fills/S06 Bridge HT Ride Fill 2.mid"
+            ]
+        }
+    ]
+}

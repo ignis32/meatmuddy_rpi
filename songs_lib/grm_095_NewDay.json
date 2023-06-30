@@ -1,0 +1,38 @@
+{
+    "name": "grm_095_NewDay",
+    "tempo": "95",
+    "time_signature": "4/4",
+    "bar_limit": "2",
+    "intro": {
+        "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 1.mid"
+    },
+    "outro": {
+        "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 2.mid"
+    },
+    "song_parts": [
+        {
+            "name": "a",
+            "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Hat Var 1.mid",
+            "fills": [
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 3.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 4.mid"
+            ]
+        },
+        {
+            "name": "b",
+            "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Hat Var 3.mid",
+            "fills": [
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 5.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 3.mid"
+            ]
+        },
+        {
+            "name": "c",
+            "groove": "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Hat Var 2.mid",
+            "fills": [
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 6.mid",
+                "midi_lib/groove_monkee/groove_monkee_free_midi_gm/Groove Monkee Free MIDI GM/Breakbeats/095 BPM New Day/095 New Day Fill 2.mid"
+            ]
+        }
+    ]
+}
